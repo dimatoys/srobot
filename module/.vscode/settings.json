@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "xstring": "cpp",
+        "string": "cpp",
+        "chrono": "cpp",
+        "ios": "cpp",
+        "type_traits": "cpp",
+        "xutility": "cpp",
+        "iostream": "cpp"
+    }
+}

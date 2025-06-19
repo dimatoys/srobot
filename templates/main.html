@@ -1,0 +1,72 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Robot control</title>
+    <link rel="stylesheet" href="/static/jquery-ui-1.11.4/jquery-ui.css">
+    <script src="/static/jquery-1.11.3.min.js"></script>
+    <script src="/static/jquery-ui-1.11.4/jquery-ui.min.js"></script>
+    <script type="text/javascript">
+
+function writeStatus(status) {
+    $("#response").html(status);
+}
+
+function robotStart(complete) {
+    $.getJSON( "/start" , complete);
+}
+
+function robotShutdown() {
+    $.get( "/shutdown" , writeStatus);
+}
+
+function robotCmd(name, value, complete) {
+    $.getJSON( "/command/" + name  + "/" + value , complete);
+}
+
+
+function makeCmdButton(table, caption, onClick) {
+    btn = $("<input/>").attr("type", "button").attr("value", caption).click(onClick)
+    $("<tr/>").append($("<td/>").append(btn)).appendTo(table)
+}
+
+function makeRobotCmdButton(table, caption, cmd) {
+    makeCmdButton(table, caption, function(){
+        robotCmd(cmd, "0", writeStatus)
+    })
+}
+
+function makeRobotCmdValueButton(table, caption, cmd, initValue) {
+    var vi = $("<input/>").attr("type", "textfield").attr("value", initValue)
+    btn = $("<input/>").attr("type", "button").attr("value", caption).click(function(){
+        robotCmd(cmd, vi.val(), writeStatus)
+    })
+    $("<tr/>").append($("<td/>").append(vi).append(btn)).appendTo(table)
+}
+
+
+$(document).ready(function() {
+
+    let commands = $("#commands")
+
+    makeCmdButton(commands, "SHUTDOWN", robotShutdown)
+    makeRobotCmdValueButton(commands, "GO", "go", "400")
+    //makeRobotCmdValueButton(commands, "WALK", "walk", "400")
+    makeRobotCmdValueButton(commands, "TURN", "turn", "45")
+    makeRobotCmdButton(commands, "STOP", "stop")
+    makeRobotCmdValueButton(commands, "GO MAX", "gmax", "60")
+    //makeRobotCmdValueButton(commands, "WALK MAX", "wmax", "40")
+    makeRobotCmdValueButton(commands, "SPEED", "speed", "1")
+    makeRobotCmdValueButton(commands, "Aup", "Aup", "20")
+    makeRobotCmdButton(commands, "INIT", "init")
+    makeRobotCmdButton(commands, "UP1", "up1")
+
+    robotStart(writeStatus)
+ })
+
+    </script>
+  </head>
+  <body>
+    <table id="commands"></table>
+    <span id="response"></span>
+  </body>
+<html>
