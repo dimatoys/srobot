@@ -51,6 +51,9 @@ runtest1:
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; make test1"
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; sudo ./test1"
 
+killtest1:
+	rsh $(REMOTE_HOST) "sudo kill `ps -e | grep test1| awk '{print $1}'`"
+
 piclean:
 	rsync -rci * $(REMOTE_HOST):$(REMOTE_PATH)
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; make clean"

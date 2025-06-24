@@ -526,6 +526,69 @@ void test4() {
     }
 }
 
+void test5() {
+    TSkeleton2 skeleton("spider",
+    // 0
+                        14, 1520, 650,
+                        15, 1400, 670,
+                        18, 1460, -670,
+    
+    // 1
+                        2, 1470, -675,
+                        3, 1370, -650,
+                        4, 1500, -660,
+    
+    // 2
+                        22, 1440, -670,
+                        27, 1430, -660,
+                        17, 1570, -660,
+    
+    // 3
+                        0, 1410, 650,
+                        5, 1540, 650,
+                        6, 1520, 650,
+    
+    // 4
+                        13, 1550, 670,
+                        19, 1550, 650,
+                        26, 1460, 650,
+
+    // 5
+                        16, 1560, -650,
+                        20, 1390, -660,
+                        21, 1420, 650);
+
+    TMoveDownModel moveDownModel(&skeleton);
+    moveDownModel.initPosition();
+
+    while(true) {
+        string cmd;
+        cout << "CMD:";
+        cin >> cmd;
+        if (cmd.length() == 0) {
+            continue;
+        }
+
+        if (cmd == "exit") {
+            break;
+        }
+        
+        if (cmd == "neutral") {
+            cout << "---------------------------------------------------" << endl;
+            moveDownModel.toNeutral();
+            continue;
+        }
+
+        if (cmd == "down") {
+            cout << "---------------------------------------------------" << endl;
+            moveDownModel.toDown();
+            continue;
+        }
+
+    }
+}
+
+
 int main(int argc, char *argv[]) {
 	
     cout << "start" << endl;
@@ -535,7 +598,8 @@ int main(int argc, char *argv[]) {
 	//test1();
     //test2();
 	//test3();
-    test4();
+    //test4();
+    test5();
 
     cout << "stop" << endl;
 
