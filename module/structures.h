@@ -18,11 +18,6 @@ struct TPoint2D {
           Y = p.Y;
     }
 
-    TPoint2D(double x, double y) {
-          X = x;
-          Y = y;
-    }
-
     bool operator==(const TPoint2D& p) {
           return (X == p.X) && (Y == p.Y);
     }
@@ -289,8 +284,11 @@ struct TSkeleton2 : public ICompletionListener, IProcess {
      // min D
      static constexpr double D0 = 60;
 
+     // Walking H
+     // min H
      // base (walking) H (60..199)
-     double H0;
+     //H0 = sqrt(Leg0.B * Leg0.B - D0*D0) - Leg0.A;
+     static constexpr double H0 = 100;
 
      // Neutral X for edge legs
      double XN;
@@ -392,14 +390,26 @@ struct TSkeleton2 : public ICompletionListener, IProcess {
 };
 
 // Actually Step model
-struct IMoveModel : public ICompletionListener {
+struct IMoveModel : public ICompletionListener, IProcess {
 
+     const int STATUS_COMPLETE = 0;
+     const int STATUS_INCOMPLETE = 1;
+     const int STATUS_ERROR_UNREACHABLE = -1;
+     
      TSkeleton2* Skeleton;
+     ICompletionListener* Complete;
+     int Status;
+     double Speed;
+     double StepSpeed;
 
      IMoveModel(TSkeleton2* skeleton) :
-          Skeleton(skeleton) {}
+          IProcess("move"),
+          Skeleton(skeleton),
+          Complete(NULL),
+          Status(STATUS_COMPLETE),
+          Speed(1) {}
 
-     virtual void toNeutral()=0;
+     virtual void toNeutral(ICompletionListener* complete = NULL)=0;
      virtual bool setTargetsForLegs()=0;
      void move();
      void complete(IProcess* src);
@@ -407,24 +417,54 @@ struct IMoveModel : public ICompletionListener {
 
 struct IStepModel : public IMoveModel {
 
-     TPoint2D Leg0;
-     TPoint2D Leg1;
-     TPoint2D Leg2;
-     TPoint2D Leg3;
-     TPoint2D Leg4;
-     TPoint2D Leg5;
+     struct TSteppingLeg : public TPoint2D {
+          TLeg* Leg;
+          const uint8_t Group;
+     
+          TSteppingLeg(TLeg& leg, uint8_t group) :
+               Leg(&leg),
+               Group(group) {}
+
+          void step(bool& stateAchieved, bool* liftedGroups);
+          void keep() {
+               keepX();
+               keepY();
+          }
+
+          void keepX() {
+               X = Leg->X;
+          }
+
+          void keepY() {
+               Y = Leg->Y;
+          }
+
+     };
+
+     TSteppingLeg Leg0;
+     TSteppingLeg Leg1;
+     TSteppingLeg Leg2;
+     TSteppingLeg Leg3;
+     TSteppingLeg Leg4;
+     TSteppingLeg Leg5;
 
      IStepModel(TSkeleton2* skeleton) :
-          IMoveModel(skeleton) {}
+          IMoveModel(skeleton),
+          Leg0(skeleton->Leg0, 0),
+          Leg1(skeleton->Leg1, 1),
+          Leg2(skeleton->Leg2, 0),
+          Leg3(skeleton->Leg3, 1),
+          Leg4(skeleton->Leg4, 0),
+          Leg5(skeleton->Leg5, 1) {}
 
      bool step();
+     bool stepToNeutral();
 };
 
 struct TMoveDownModel : public IStepModel {
      
      enum EState {
           STATE_NEUTRAL = 0,
-          STATE_UP_WIDE1,
           STATE_UP_WIDE,
           STATE_DOWN
      };
@@ -440,9 +480,77 @@ struct TMoveDownModel : public IStepModel {
 
      void initPosition();
 
-     void toNeutral();
-     void toDown();
+     void toNeutral(ICompletionListener* complete = NULL);
+     void toDown(ICompletionListener* complete = NULL);
 };
 
+struct TMoveForwardModel : public IStepModel {
+
+     double State;
+     double LeftDistance;
+     bool StopNeutral;
+
+     TMoveForwardModel(TSkeleton2* skeleton) :
+          IStepModel(skeleton),
+          State(0),
+          LeftDistance(0),
+          StopNeutral(true) {}
+
+     bool setTargetsForLegs();
+     void toNeutral(ICompletionListener* complete = NULL);
+     void moveForward(double distance, ICompletionListener* complete = NULL);
+};
+
+struct TTurnModel : public IStepModel {
+     double State;
+     double LeftAngle;
+     bool StopNeutral;
+
+     TTurnModel(TSkeleton2* skeleton) :
+          IStepModel(skeleton),
+          State(0),
+          LeftAngle(0),
+          StopNeutral(true) {}
+
+     bool setTargetsForLegs();
+     void toNeutral(ICompletionListener* complete = NULL);
+     void turnAngle(double angle, ICompletionListener* complete = NULL);
+};
+
+struct TMove2 : public ICompletionListener {
+
+     enum ECommand {
+          CMD_DOWN,
+          CMD_FORWARD,
+          CMD_TURN
+     };
+     
+     TMoveDownModel MoveDownModel;
+     TMoveForwardModel MoveForwardModel;
+     double Distance;
+
+     TTurnModel TurnModel;
+     double Angle;
+
+     ECommand Command;
+
+     IMoveModel* CurrentModel;
+
+     TMove2(TSkeleton2* skeleton) :
+          MoveDownModel(skeleton),
+          MoveForwardModel(skeleton),
+          TurnModel(skeleton)  {}
+
+     void move();
+     void complete(IProcess* src);
+     void initPosition();
+     void setSpeed(double speed);
+     
+     void toNeutral();
+     void toDown();
+     void moveForward(double distance);
+     void turn(double angle);
+
+};
 
 #endif

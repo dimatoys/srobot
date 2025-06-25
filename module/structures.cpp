@@ -92,18 +92,21 @@ void TLeg::setAngles(double speed, ICompletionListener* complete) {
 }
 
 void TLeg::setAngles(double speed, int maxDistance, ICompletionListener* complete) {
-    cout << Id << " [a=" << As << ", b=" << Bs << ", c=" << Cs << "]" << endl;
+    cout << Id << " (" << As << ", " << Bs << ", " << Cs << ") <- ("
+         << MiddleServo.getAngle() << ", " << BottomServo.getAngle() << ", " << TopServo.getAngle() << ") ["
+         << MiddleServo.getTargetDistanceToAngle(As) << ", " << BottomServo.getTargetDistanceToAngle(Bs) << ", " << TopServo.getTargetDistanceToAngle(Cs) << "]"
+         << " max=" << maxDistance << " speed=" << speed << endl;
     Complete = complete;
-    BottomServo.setTargetAngle(Bs, speed * BottomServo.getTargetDistance(Bs) / maxDistance, this);
-    MiddleServo.setTargetAngle(As, speed * MiddleServo.getTargetDistance(As) / maxDistance, this);
-    TopServo.setTargetAngle(Cs, speed * TopServo.getTargetDistance(Cs) / maxDistance, this);
+    BottomServo.setTargetAngle(Bs, speed * BottomServo.getTargetDistanceToAngle(Bs) / maxDistance, this);
+    MiddleServo.setTargetAngle(As, speed * MiddleServo.getTargetDistanceToAngle(As) / maxDistance, this);
+    TopServo.setTargetAngle(Cs, speed * TopServo.getTargetDistanceToAngle(Cs) / maxDistance, this);
 }
 
 
 int TLeg::getMaxTargetDistance() {
-    auto Bd = BottomServo.getTargetDistance(Bs);
-    auto Ad = MiddleServo.getTargetDistance(As);
-    auto Cd = TopServo.getTargetDistance(Cs);
+    auto Bd = BottomServo.getTargetDistanceToAngle(Bs);
+    auto Ad = MiddleServo.getTargetDistanceToAngle(As);
+    auto Cd = TopServo.getTargetDistanceToAngle(Cs);
 
     return Bd > Ad ? (Bd > Cd ? Bd : Cd) : (Ad > Cd ? Ad : Cd);
 }
@@ -692,11 +695,6 @@ void TSkeleton2::countInitParams() {
     // Alpha
     double A2 = 25 * M_PI / 180;
     
-    // Walking H
-    // min H
-    //H0 = sqrt(Leg0.B * Leg0.B - D0*D0) - Leg0.A;
-    H0 = 100;
-
     // Neutral X for edge legs
     XN = (D0 + Leg0.C) * cos(A2);
 
@@ -778,113 +776,91 @@ void IMoveModel::complete(IProcess* src) {
 }
 
 void IMoveModel::move() {
+    Status = STATUS_INCOMPLETE;
+    StepSpeed = Speed;
     if (setTargetsForLegs()) {
         if (Skeleton->countTargets()) {
-            Skeleton->setAngles(0.1, this);
+            Skeleton->setAngles(StepSpeed, this);
+            return;
         } else {
             cout << "Unreachable position" << endl;
+            Status = STATUS_ERROR_UNREACHABLE;
         }
     } else {
         cout << "Target reached" << endl;
+        Status = STATUS_COMPLETE;
+    }
+
+    if (Complete != NULL) {
+        auto complete = Complete;
+        Complete = NULL;
+        complete->complete(this);
     }
 }
 
+void IStepModel::TSteppingLeg::step(bool& stateAchieved, bool* liftedGroups) {
+    if (Leg->H > TSkeleton2::Hdown) {
+        // leg is not lifted
+        if ((Leg->X == X) && (Leg->Y == Y)) {
+            // leg on the right place
+            // just make sure it is on the ground
+            Leg->H = TSkeleton2::H0;
+        } else {
+            // log is not on the right place
+            // need to lift it first
+            stateAchieved = false;
+            if (!liftedGroups[1 - Group]) {
+                // can lift, as the other group is on the ground
+                // so lift it
+                Leg->H = TSkeleton2::Hdown;
+                liftedGroups[Group] = true;
+            } // else cannot list, as the other group is already lifted
+        }
+    } else {
+        // leg is lifted
+        // just momve it down
+        Leg->X = X;
+        Leg->Y = Y;
+        Leg->H = TSkeleton2::H0;
+    }
+}
+
+
 bool IStepModel::step() {
 
-    bool needLiftGroup1 = false;
-    bool needLiftGroup2 = false;
+    bool stateAchieved = true;
+    bool liftedGroups[] = {(Skeleton->Leg0.H < Skeleton->H0) ||
+                           (Skeleton->Leg2.H < Skeleton->H0) ||
+                           (Skeleton->Leg4.H < Skeleton->H0),
 
-    if (Skeleton->Leg0 == Leg0) {
-        if (Skeleton->Leg0.H < Skeleton->H0) {
-            Skeleton->Leg0.H = Skeleton->H0;
-        }
-    } else {
-        if (Skeleton->Leg0.H > Skeleton->Hdown) {
-            Skeleton->Leg0.H = Skeleton->Hdown;
-            needLiftGroup1 = true;
-        } else {
-            Skeleton->Leg0.X = Leg0.X;
-            Skeleton->Leg0.Y = Leg0.Y;
-            Skeleton->Leg0.H = Skeleton->H0;
-        }
-    }
+                           (Skeleton->Leg1.H < Skeleton->H0) ||
+                           (Skeleton->Leg3.H < Skeleton->H0) ||
+                           (Skeleton->Leg5.H < Skeleton->H0)};
 
-    if (Skeleton->Leg1 == Leg1) {
-        if (Skeleton->Leg1.H < Skeleton->H0) {
-            Skeleton->Leg1.H = Skeleton->H0;
-        }
-    } else {
-        if (Skeleton->Leg1.H > Skeleton->Hdown) {
-            Skeleton->Leg1.H = Skeleton->Hdown;
-            needLiftGroup2 = true;
-        } else {
-            Skeleton->Leg1.X = Leg1.X;
-            Skeleton->Leg1.Y = Leg1.Y;
-            Skeleton->Leg1.H = Skeleton->H0;
-        }
-    }
+    Leg0.step(stateAchieved, liftedGroups);
+    Leg1.step(stateAchieved, liftedGroups);
+    Leg2.step(stateAchieved, liftedGroups);
+    Leg3.step(stateAchieved, liftedGroups);
+    Leg4.step(stateAchieved, liftedGroups);
+    Leg5.step(stateAchieved, liftedGroups);
 
-    if (Skeleton->Leg2 == Leg2) {
-        if (Skeleton->Leg2.H < Skeleton->H0) {
-            Skeleton->Leg2.H = Skeleton->H0;
-        }
-    } else {
-        if (Skeleton->Leg2.H > Skeleton->Hdown) {
-            Skeleton->Leg2.H = Skeleton->Hdown;
-            needLiftGroup1 = true;
-        } else {
-            Skeleton->Leg2.X = Leg2.X;
-            Skeleton->Leg2.Y = Leg2.Y;
-            Skeleton->Leg2.H = Skeleton->H0;
-        }
-    }
+    return stateAchieved;
+}
 
-    if (Skeleton->Leg3 == Leg3) {
-        if (Skeleton->Leg3.H < Skeleton->H0) {
-            Skeleton->Leg3.H = Skeleton->H0;
-        }
-    } else {
-        if (Skeleton->Leg3.H > Skeleton->Hdown) {
-            Skeleton->Leg3.H = Skeleton->Hdown;
-            needLiftGroup2 = true;
-        } else {
-            Skeleton->Leg3.X = Leg3.X;
-            Skeleton->Leg3.Y = Leg3.Y;
-            Skeleton->Leg3.H = Skeleton->H0;
-        }
-    }
-
-    if (Skeleton->Leg4 == Leg4) {
-        if (Skeleton->Leg4.H < Skeleton->H0) {
-            Skeleton->Leg4.H = Skeleton->H0;
-        }
-    } else {
-        if (Skeleton->Leg4.H > Skeleton->Hdown) {
-            Skeleton->Leg4.H = Skeleton->Hdown;
-            needLiftGroup1 = true;
-        } else {
-            Skeleton->Leg4.X = Leg4.X;
-            Skeleton->Leg4.Y = Leg4.Y;
-            Skeleton->Leg4.H = Skeleton->H0;
-        }
-    }
-
-    if (Skeleton->Leg5 == Leg5) {
-        if (Skeleton->Leg5.H < Skeleton->H0) {
-            Skeleton->Leg5.H = Skeleton->H0;
-        }
-    } else {
-        if (Skeleton->Leg5.H > Skeleton->Hdown) {
-            Skeleton->Leg5.H = Skeleton->Hdown;
-            needLiftGroup2 = true;
-        } else {
-            Skeleton->Leg5.X = Leg5.X;
-            Skeleton->Leg5.Y = Leg5.Y;
-            Skeleton->Leg5.H = Skeleton->H0;
-        }
-    }
-
-    return !(needLiftGroup1 || needLiftGroup2);
+bool IStepModel::stepToNeutral() {
+    Leg0.X = Skeleton->XN;
+    Leg0.Y = Skeleton->Y;
+    Leg1.X = Skeleton->XN;
+    Leg1.Y = 0;
+    Leg2.X = Skeleton->XN;
+    Leg2.Y = -Skeleton->Y;
+    Leg3.X = Skeleton->XN;
+    Leg3.Y = Skeleton->Y;
+    Leg4.X = Skeleton->XN;
+    Leg4.Y = 0;
+    Leg5.X = Skeleton->XN;
+    Leg5.Y = -Skeleton->Y;
+    return step();
 }
 
 void TMoveDownModel::setState(EState newState) {
@@ -894,47 +870,30 @@ void TMoveDownModel::setState(EState newState) {
     switch(newState) {
         case STATE_DOWN:
             Skeleton->Leg0.H = Skeleton->Hdown;
-            Skeleton->Leg2.H = Skeleton->Hdown;
-            Skeleton->Leg4.H = Skeleton->Hdown;
-
             Skeleton->Leg1.H = Skeleton->Hdown;
+            Skeleton->Leg2.H = Skeleton->Hdown;
             Skeleton->Leg3.H = Skeleton->Hdown;
+            Skeleton->Leg4.H = Skeleton->Hdown;
             Skeleton->Leg5.H = Skeleton->Hdown;
+            StepSpeed = 0.1;
             break;
         case STATE_UP_WIDE:
             Leg0.X = Skeleton->XD;
-            Leg0.Y = Skeleton->Leg0.Y;
-            Leg1 = Skeleton->Leg1;
+            Leg0.keepY();
+            Leg1.X = Skeleton->XD;
+            Leg1.keepY();
             Leg2.X = Skeleton->XD;
-            Leg2.Y = Skeleton->Leg2.Y;
-            Leg3 = Skeleton->Leg3;
-            Leg4 = Skeleton->Leg4;
-            Leg5 = Skeleton->Leg5;
-            stateUpdated = step();
-            break;
-        case STATE_UP_WIDE1:
-            Leg0.X = Skeleton->XN;
-            Leg0.Y = Skeleton->Leg0.Y;
-            Leg1 = Skeleton->Leg1;
-            Leg2.X = Skeleton->XN;
-            Leg2.Y = Skeleton->Leg2.Y;
+            Leg2.keepY();
             Leg3.X = Skeleton->XD;
-            Leg3.Y = Skeleton->Leg3.Y;
-            Leg4 = Skeleton->Leg4;
+            Leg3.keepY();
+            Leg4.X = Skeleton->XD;
+            Leg4.keepY();
             Leg5.X = Skeleton->XD;
-            Leg5.Y = Skeleton->Leg5.Y;
+            Leg5.keepY();
             stateUpdated = step();
             break;
         case STATE_NEUTRAL:
-            Leg0 = Skeleton->Leg0;
-            Leg1 = Skeleton->Leg1;
-            Leg2 = Skeleton->Leg2;
-            Leg3.X = Skeleton->XN;
-            Leg3.Y = Skeleton->Leg3.Y;
-            Leg4 = Skeleton->Leg4;
-            Leg5.X = Skeleton->XN;
-            Leg5.Y = Skeleton->Leg5.Y;
-            stateUpdated = step();
+            stateUpdated = stepToNeutral();
             break;
         default:
             cout << "Incorrect state: " << newState << endl;
@@ -944,8 +903,6 @@ void TMoveDownModel::setState(EState newState) {
         CurrentState = newState;
     }
 }
-
-
 
 bool TMoveDownModel::setTargetsForLegs() {
 
@@ -965,9 +922,10 @@ bool TMoveDownModel::setTargetsForLegs() {
 void TMoveDownModel::initPosition() {
 
     Skeleton->Leg0.X = Skeleton->XD;
+    Skeleton->Leg1.X = Skeleton->XD;
     Skeleton->Leg2.X = Skeleton->XD;
- 
     Skeleton->Leg3.X = Skeleton->XD;
+    Skeleton->Leg4.X = Skeleton->XD;
     Skeleton->Leg5.X = Skeleton->XD;
 
     Skeleton->Leg0.Y = Skeleton->Y;
@@ -976,9 +934,6 @@ void TMoveDownModel::initPosition() {
     Skeleton->Leg3.Y = Skeleton->Y;
     Skeleton->Leg4.Y = 0;
     Skeleton->Leg5.Y = -Skeleton->Y;
-
-    Skeleton->Leg1.X = Skeleton->XM;
-    Skeleton->Leg4.X = Skeleton->XM;
 
     setState(STATE_DOWN);
 
@@ -990,12 +945,194 @@ void TMoveDownModel::initPosition() {
     
 }
 
-void TMoveDownModel::toNeutral() {
+void TMoveDownModel::toNeutral(ICompletionListener* complete) {
     TargetState = STATE_NEUTRAL;
+    Complete = complete;
     move();
 }
 
-void TMoveDownModel::toDown() {
+void TMoveDownModel::toDown(ICompletionListener* complete) {
     TargetState = STATE_DOWN;
+    Complete = complete;
     move();
 }
+
+bool TMoveForwardModel::setTargetsForLegs() {
+
+    cout << "forward: distance=" << LeftDistance << " state=" << State << endl;
+
+    if (LeftDistance == 0) {
+        if (StopNeutral && (State != 0)) {
+            if (stepToNeutral()) {
+                State = 0;
+            }
+        } else {
+            return false;
+        }
+    } else {
+        if (State >= 0) {
+            auto d = Skeleton->S / 2 + State;
+            if (d > LeftDistance) {
+                d = LeftDistance;
+            }
+            auto newState = State - d;
+
+            Leg0.keep();
+            Leg1.keepX();
+            Leg1.Y = -newState;
+            Leg2.keep();
+            Leg3.keepX();
+            Leg3.Y = Skeleton->Y - newState;
+            Leg4.keep();
+            Leg5.keepX();
+            Leg5.Y = -Skeleton->Y - newState;
+            
+            if (step()) {
+                Skeleton->Leg0.Y = Skeleton->Y + newState;
+                Skeleton->Leg2.Y = -Skeleton->Y + newState;
+                Skeleton->Leg4.Y = newState;
+                State = newState;
+                LeftDistance -= d;
+            }
+        } else {
+            auto d = Skeleton->S / 2 - State;
+            if (d > LeftDistance) {
+                d = LeftDistance;
+            }
+            auto newState = State + d;
+
+            Leg0.keepX();
+            Leg0.Y = Skeleton->Y + newState;
+            Leg1.keep();
+            Leg2.keepX();
+            Leg2.Y = -Skeleton->Y + newState;
+            Leg3.keep();
+            Leg4.keepX();
+            Leg4.Y = newState;
+            Leg5.keep();
+            if (step()) {
+                Skeleton->Leg1.Y = - newState;
+                Skeleton->Leg3.Y = Skeleton->Y - newState;
+                Skeleton->Leg5.Y = -Skeleton->Y - newState;
+                State = newState;
+                LeftDistance -= d;
+            }
+        }
+    }
+    return true;
+}
+
+void TMoveForwardModel::toNeutral(ICompletionListener* complete) {
+    LeftDistance = 0;
+    Complete = complete;
+    StopNeutral = true;
+    move();
+}
+
+void TMoveForwardModel::moveForward(double distance, ICompletionListener* complete) {
+    LeftDistance = distance;
+    Complete = complete;
+    StopNeutral = false;
+    move();
+}
+
+bool TTurnModel::setTargetsForLegs() {
+    cout << "turn: angle=" << LeftAngle << " state=" << State << endl;
+
+    if (LeftAngle == 0) {
+        if (StopNeutral && (State != 0)) {
+            if (stepToNeutral()) {
+                State = 0;
+            }
+        } else {
+            return false;
+        }
+    } else {
+        if (State >= 0) {
+        } else {
+
+        }
+    }
+
+    return false;
+}
+
+void TTurnModel::toNeutral(ICompletionListener* complete) {
+    LeftAngle = 0;
+    Complete = complete;
+    StopNeutral = true;
+    move();
+}
+
+void TTurnModel::turnAngle(double angle, ICompletionListener* complete) {
+    LeftAngle = angle;
+    Complete = complete;
+    StopNeutral = false;
+    move();
+}
+
+void TMove2::move() {
+    switch(Command) {
+    case CMD_DOWN:
+        CurrentModel = &MoveDownModel;
+        MoveDownModel.toDown();
+        break;
+    case CMD_FORWARD:
+        CurrentModel = &MoveForwardModel;
+        MoveForwardModel.moveForward(Distance);
+        break;
+    case CMD_TURN:
+        CurrentModel = &TurnModel;
+        TurnModel.turnAngle(Angle);
+        break;
+    }
+}
+
+void TMove2::complete(IProcess* src) {
+    move();
+}
+
+
+void TMove2::initPosition() {
+    CurrentModel = &MoveDownModel;
+    MoveDownModel.initPosition();
+}
+
+void TMove2::toNeutral() {
+    CurrentModel->toNeutral();
+}
+
+void TMove2::toDown() {
+    Command = CMD_DOWN;
+    if (CurrentModel == &MoveDownModel) {
+        move();
+    } else {
+        CurrentModel->toNeutral(this);
+    }
+}
+
+void TMove2::moveForward(double distance) {
+    Command = CMD_FORWARD;
+    Distance = distance;
+    if (CurrentModel == &MoveForwardModel) {
+        move();
+    } else {
+        CurrentModel->toNeutral(this);
+    }
+}
+
+void TMove2::turn(double angle) {
+    Command = CMD_TURN;
+    Angle = angle;
+    if (CurrentModel == &TurnModel) {
+        move();
+    } else {
+        CurrentModel->toNeutral(this);
+    }
+}
+
+void TMove2::setSpeed(double speed) {
+    MoveDownModel.Speed = speed;
+    MoveForwardModel.Speed = speed;
+}
+

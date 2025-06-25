@@ -558,8 +558,8 @@ void test5() {
                         20, 1390, -660,
                         21, 1420, 650);
 
-    TMoveDownModel moveDownModel(&skeleton);
-    moveDownModel.initPosition();
+    TMove2 move(&skeleton);
+    move.initPosition();
 
     while(true) {
         string cmd;
@@ -575,16 +575,41 @@ void test5() {
         
         if (cmd == "neutral") {
             cout << "---------------------------------------------------" << endl;
-            moveDownModel.toNeutral();
+            move.toNeutral();
             continue;
         }
 
         if (cmd == "down") {
             cout << "---------------------------------------------------" << endl;
-            moveDownModel.toDown();
+            move.toDown();
             continue;
         }
 
+        if (cmd == "forward") {
+            double distance;
+            cout << "distance:";
+            cin >> distance;
+            cout << "---------------------------------------------------" << endl;
+            move.moveForward(distance);
+            continue;
+        }
+
+        if (cmd == "turn") {
+            double angle;
+            cout << "angle:";
+            cin >> angle;
+            cout << "---------------------------------------------------" << endl;
+            move.turn(angle);
+            continue;
+        }
+
+        if (cmd == "speed") {
+            double speed;
+            cout << "[0..1000]:";
+            cin >> speed;
+            move.setSpeed(speed / 1000.0);
+            continue;
+        }
     }
 }
 
