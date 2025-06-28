@@ -560,6 +560,7 @@ void test5() {
 
     TMove2 move(&skeleton);
     move.initPosition();
+    move.setSpeed(0.05);
 
     while(true) {
         string cmd;
@@ -599,7 +600,7 @@ void test5() {
             cout << "angle:";
             cin >> angle;
             cout << "---------------------------------------------------" << endl;
-            move.turn(angle);
+            move.turn(angle * M_PI / 180);
             continue;
         }
 

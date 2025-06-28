@@ -3,8 +3,6 @@
 #include <iostream>
 #include <unistd.h>
 
-#include <cmath>
-
 using namespace std;
 
 void TLeg::complete(IProcess* src) {
@@ -37,7 +35,7 @@ bool TLeg::countabc(double& a, double& b, double& c) {
         auto cr = sqrt(bha2) + C;
         auto cx = cr * cos(c);
         auto cy = cr * sin(c);
-        cout << "close area: cx=" << cx << " cy=" << cy << " cr=" << cr << " r=" << (r + C)  << endl;
+        cout << Id << " close area: cx=" << cx << " cy=" << cy << " cr=" << cr << " r=" << (r + C)  << endl;
 
     } else {
 
@@ -92,10 +90,10 @@ void TLeg::setAngles(double speed, ICompletionListener* complete) {
 }
 
 void TLeg::setAngles(double speed, int maxDistance, ICompletionListener* complete) {
-    cout << Id << " (" << As << ", " << Bs << ", " << Cs << ") <- ("
-         << MiddleServo.getAngle() << ", " << BottomServo.getAngle() << ", " << TopServo.getAngle() << ") ["
-         << MiddleServo.getTargetDistanceToAngle(As) << ", " << BottomServo.getTargetDistanceToAngle(Bs) << ", " << TopServo.getTargetDistanceToAngle(Cs) << "]"
-         << " max=" << maxDistance << " speed=" << speed << endl;
+    //cout << Id << " (" << As << ", " << Bs << ", " << Cs << ") <- ("
+    //     << MiddleServo.getAngle() << ", " << BottomServo.getAngle() << ", " << TopServo.getAngle() << ") ["
+    //     << MiddleServo.getTargetDistanceToAngle(As) << ", " << BottomServo.getTargetDistanceToAngle(Bs) << ", " << TopServo.getTargetDistanceToAngle(Cs) << "]"
+    //     << " max=" << maxDistance << " speed=" << speed << endl;
     Complete = complete;
     BottomServo.setTargetAngle(Bs, speed * BottomServo.getTargetDistanceToAngle(Bs) / maxDistance, this);
     MiddleServo.setTargetAngle(As, speed * MiddleServo.getTargetDistanceToAngle(As) / maxDistance, this);
@@ -719,7 +717,21 @@ void TSkeleton2::countInitParams() {
     // X for down position
     XD = Leg0.C + sqrt(Leg0.B * Leg0.B - Leg0.A * Leg0.A);
 
-    cout << "H0=" << H0 << " S=" << S << " XN=" << XN << " XM=" << XM << " Y=" << Y << endl;
+    // coordinates of edge leg tip in neutral position relatevly to center of spider
+    auto CX = FW / 2 + XN;
+    auto CY = FH / 2 + Y;
+
+     // Turn Radius of edge legs in neutral
+    RE = sqrt(CX * CX + CY * CY);
+
+     // Turn Radius of middle legs in neutral
+    RM = FW / 2 + XN;
+
+    // Angle from center to tip of edge leg in neutral
+    AN = atan2(CY, CX);
+
+    cout << "H0=" << H0 << " S=" << S << " XN=" << XN << " XM=" << XM << " Y=" << Y
+         << " RE=" << RE << " RM=" << RM << " AN=" << (AN * 180 / M_PI) << endl;
 }
 
 void TSkeleton2::setAngles() {
@@ -798,7 +810,7 @@ void IMoveModel::move() {
     }
 }
 
-void IStepModel::TSteppingLeg::step(bool& stateAchieved, bool* liftedGroups) {
+void IStepModel::TSteppingLeg::step(bool& stateAchieved, bool* liftedGroups, int numGroups) {
     if (Leg->H > TSkeleton2::Hdown) {
         // leg is not lifted
         if ((Leg->X == X) && (Leg->Y == Y)) {
@@ -809,40 +821,51 @@ void IStepModel::TSteppingLeg::step(bool& stateAchieved, bool* liftedGroups) {
             // log is not on the right place
             // need to lift it first
             stateAchieved = false;
-            if (!liftedGroups[1 - Group]) {
+            // check if any other group already lifted
+            bool otherLifted = false;
+            for (int i = 0; i < numGroups; ++i) {
+                if (i != Group) {
+                    otherLifted = otherLifted || liftedGroups[i];
+                }
+            }
+            if (!otherLifted) {
+            //if (!liftedGroups[1 - Group]) {
                 // can lift, as the other group is on the ground
                 // so lift it
                 Leg->H = TSkeleton2::Hdown;
                 liftedGroups[Group] = true;
-            } // else cannot list, as the other group is already lifted
+            } // else cannot lift, as the other group is already lifted
         }
     } else {
         // leg is lifted
-        // just momve it down
+        // just move it down
         Leg->X = X;
         Leg->Y = Y;
         Leg->H = TSkeleton2::H0;
     }
 }
 
+void IStepModel::TSteppingLeg::checkLifted(bool* liftedGroups) {
+    liftedGroups[Group] = liftedGroups[Group] || (Leg->H < TSkeleton2::H0);
+}
 
 bool IStepModel::step() {
 
     bool stateAchieved = true;
-    bool liftedGroups[] = {(Skeleton->Leg0.H < Skeleton->H0) ||
-                           (Skeleton->Leg2.H < Skeleton->H0) ||
-                           (Skeleton->Leg4.H < Skeleton->H0),
+    bool liftedGroups[] = {false, false, false, false, false, false};
+    Leg0.checkLifted(liftedGroups);
+    Leg1.checkLifted(liftedGroups);
+    Leg2.checkLifted(liftedGroups);
+    Leg3.checkLifted(liftedGroups);
+    Leg4.checkLifted(liftedGroups);
+    Leg5.checkLifted(liftedGroups);
 
-                           (Skeleton->Leg1.H < Skeleton->H0) ||
-                           (Skeleton->Leg3.H < Skeleton->H0) ||
-                           (Skeleton->Leg5.H < Skeleton->H0)};
-
-    Leg0.step(stateAchieved, liftedGroups);
-    Leg1.step(stateAchieved, liftedGroups);
-    Leg2.step(stateAchieved, liftedGroups);
-    Leg3.step(stateAchieved, liftedGroups);
-    Leg4.step(stateAchieved, liftedGroups);
-    Leg5.step(stateAchieved, liftedGroups);
+    Leg0.step(stateAchieved, liftedGroups, NumGroups);
+    Leg1.step(stateAchieved, liftedGroups, NumGroups);
+    Leg2.step(stateAchieved, liftedGroups, NumGroups);
+    Leg3.step(stateAchieved, liftedGroups, NumGroups);
+    Leg4.step(stateAchieved, liftedGroups, NumGroups);
+    Leg5.step(stateAchieved, liftedGroups, NumGroups);
 
     return stateAchieved;
 }
@@ -957,6 +980,47 @@ void TMoveDownModel::toDown(ICompletionListener* complete) {
     move();
 }
 
+bool TMoveForwardModel::groundedGroup1(double newState) {
+    Leg0.keep();
+    Leg1.keepX();
+    Leg1.Y = -newState;
+    Leg2.keep();
+    Leg3.keepX();
+    Leg3.Y = Skeleton->Y - newState;
+    Leg4.keep();
+    Leg5.keepX();
+    Leg5.Y = -Skeleton->Y - newState;
+            
+    if (step()) {
+        Skeleton->Leg0.Y = Skeleton->Y + newState;
+        Skeleton->Leg2.Y = -Skeleton->Y + newState;
+        Skeleton->Leg4.Y = newState;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool TMoveForwardModel::groundedGroup2(double newState) {
+    Leg0.keepX();
+    Leg0.Y = Skeleton->Y + newState;
+    Leg1.keep();
+    Leg2.keepX();
+    Leg2.Y = -Skeleton->Y + newState;
+    Leg3.keep();
+    Leg4.keepX();
+    Leg4.Y = newState;
+    Leg5.keep();
+    if (step()) {
+        Skeleton->Leg1.Y = - newState;
+        Skeleton->Leg3.Y = Skeleton->Y - newState;
+        Skeleton->Leg5.Y = -Skeleton->Y - newState;
+        return true;
+    } else {
+        return false;
+    }
+}
+
 bool TMoveForwardModel::setTargetsForLegs() {
 
     cout << "forward: distance=" << LeftDistance << " state=" << State << endl;
@@ -972,50 +1036,39 @@ bool TMoveForwardModel::setTargetsForLegs() {
     } else {
         if (State >= 0) {
             auto d = Skeleton->S / 2 + State;
-            if (d > LeftDistance) {
-                d = LeftDistance;
+            if (d > abs(LeftDistance)) {
+                d = abs(LeftDistance);
             }
             auto newState = State - d;
-
-            Leg0.keep();
-            Leg1.keepX();
-            Leg1.Y = -newState;
-            Leg2.keep();
-            Leg3.keepX();
-            Leg3.Y = Skeleton->Y - newState;
-            Leg4.keep();
-            Leg5.keepX();
-            Leg5.Y = -Skeleton->Y - newState;
-            
-            if (step()) {
-                Skeleton->Leg0.Y = Skeleton->Y + newState;
-                Skeleton->Leg2.Y = -Skeleton->Y + newState;
-                Skeleton->Leg4.Y = newState;
-                State = newState;
-                LeftDistance -= d;
+            cout << "newState(>)=" << newState << endl;
+            if (LeftDistance > 0) {
+                if (groundedGroup1(newState)) {
+                    State = newState;
+                    LeftDistance -= d;
+                }
+            } else {
+                if (groundedGroup2(newState)) {
+                    State = newState;
+                    LeftDistance -= -d;
+                }
             }
         } else {
             auto d = Skeleton->S / 2 - State;
-            if (d > LeftDistance) {
-                d = LeftDistance;
+            if (d > abs(LeftDistance)) {
+                d = abs(LeftDistance);
             }
             auto newState = State + d;
-
-            Leg0.keepX();
-            Leg0.Y = Skeleton->Y + newState;
-            Leg1.keep();
-            Leg2.keepX();
-            Leg2.Y = -Skeleton->Y + newState;
-            Leg3.keep();
-            Leg4.keepX();
-            Leg4.Y = newState;
-            Leg5.keep();
-            if (step()) {
-                Skeleton->Leg1.Y = - newState;
-                Skeleton->Leg3.Y = Skeleton->Y - newState;
-                Skeleton->Leg5.Y = -Skeleton->Y - newState;
-                State = newState;
-                LeftDistance -= d;
+            cout << "newState(<)=" << newState << endl;
+            if (LeftDistance > 0) {
+                if (groundedGroup2(newState)) {
+                    State = newState;
+                    LeftDistance -= d;
+                }
+            } else {
+                if (groundedGroup1(newState)) {
+                    State = newState;
+                    LeftDistance -= -d;
+                }
             }
         }
     }
@@ -1036,8 +1089,60 @@ void TMoveForwardModel::moveForward(double distance, ICompletionListener* comple
     move();
 }
 
+bool TTurnModel::groundedGroup1(double newState) {
+    Leg0.keep();
+    Leg1.X = Skeleton->RM * cos(-newState) - Skeleton->FW / 2;
+    Leg1.Y = Skeleton->RM * sin(-newState);
+    Leg2.keep();
+    Leg3.X = Skeleton->RE * cos(Skeleton->AN + newState) - Skeleton->FW / 2;
+    Leg3.Y = Skeleton->RE * sin(Skeleton->AN + newState) - Skeleton->FH / 2;
+    Leg4.keep();
+    Leg5.X = Skeleton->RE * cos(Skeleton->AN - newState) - Skeleton->FW / 2;
+    Leg5.Y = -(Skeleton->RE * sin(Skeleton->AN - newState) - Skeleton->FH / 2);
+    if (step()) {
+        Skeleton->Leg0.X = Skeleton->RE * cos(Skeleton->AN + newState) - Skeleton->FW / 2;
+        Skeleton->Leg0.Y = Skeleton->RE * sin(Skeleton->AN + newState) - Skeleton->FH / 2;
+        Skeleton->Leg2.X = Skeleton->RE * cos(Skeleton->AN - newState) - Skeleton->FW / 2;
+        Skeleton->Leg2.Y = -(Skeleton->RE * sin(Skeleton->AN - newState) - Skeleton->FH / 2);
+        Skeleton->Leg4.X = Skeleton->RM * cos(-newState) - Skeleton->FW / 2;
+        Skeleton->Leg4.Y = Skeleton->RM * sin(-newState);
+        if (Speed > 0.5) {
+            StepSpeed = 0.5;
+        }
+        return true;
+    } else{
+        return false;
+    }
+}
+
+bool TTurnModel::groundedGroup2(double newState) {
+    Leg0.X = Skeleton->RE * cos(Skeleton->AN + newState) - Skeleton->FW / 2;
+    Leg0.Y = Skeleton->RE * sin(Skeleton->AN + newState) - Skeleton->FH / 2;
+    Leg1.keep();
+    Leg2.X = Skeleton->RE * cos(Skeleton->AN - newState) - Skeleton->FW / 2;
+    Leg2.Y = -(Skeleton->RE * sin(Skeleton->AN - newState) - Skeleton->FH / 2);
+    Leg3.keep();
+    Leg4.X = Skeleton->RM * cos(-newState) - Skeleton->FW / 2;
+    Leg4.Y = Skeleton->RM * sin(-newState);
+    Leg5.keep();
+    if(step()) {
+        Skeleton->Leg1.X = Skeleton->RM * cos(-newState) - Skeleton->FW / 2;
+        Skeleton->Leg1.Y = Skeleton->RM * sin(-newState);
+        Skeleton->Leg3.X = Skeleton->RE * cos(Skeleton->AN + newState) - Skeleton->FW / 2;
+        Skeleton->Leg3.Y = Skeleton->RE * sin(Skeleton->AN + newState) - Skeleton->FH / 2;
+        Skeleton->Leg5.X = Skeleton->RE * cos(Skeleton->AN - newState) - Skeleton->FW / 2;
+        Skeleton->Leg5.Y = -(Skeleton->RE * sin(Skeleton->AN - newState) - Skeleton->FH / 2);
+        if (Speed > 0.5) {
+            StepSpeed = 0.5;
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+
 bool TTurnModel::setTargetsForLegs() {
-    cout << "turn: angle=" << LeftAngle << " state=" << State << endl;
+    cout << "turn: angle=" << (LeftAngle * 180 / M_PI) << " state=" << (State * 180 / M_PI) << endl;
 
     if (LeftAngle == 0) {
         if (StopNeutral && (State != 0)) {
@@ -1049,12 +1154,45 @@ bool TTurnModel::setTargetsForLegs() {
         }
     } else {
         if (State >= 0) {
+            auto d = Skeleton->Tmax + State;
+            if (d > abs(LeftAngle)) {
+                d = abs(LeftAngle);
+            }
+            auto newState = State - d;
+            cout << "newState(>0)=" << (newState * 180 / M_PI) << endl;
+            if (LeftAngle > 0) {
+                if(groundedGroup1(newState)) {
+                    LeftAngle -= d;
+                    State = newState;
+                }
+            } else {
+                if (groundedGroup2(newState)) {
+                    LeftAngle -= -d;
+                    State = newState;
+                }
+            }
         } else {
-
+            auto d = Skeleton->Tmax - State;
+            if (d > abs(LeftAngle)) {
+                d = abs(LeftAngle);
+            }
+            auto newState = State + d;
+            cout << "newState(<0)=" << (newState * 180 / M_PI) << endl;
+            if (LeftAngle > 0){
+                if (groundedGroup2(newState)) {
+                    LeftAngle -= d;
+                    State = newState;
+                }
+            } else {
+                if(groundedGroup1(newState)) {
+                    LeftAngle -= -d;
+                    State = newState;
+                }
+            }
         }
     }
 
-    return false;
+    return true;
 }
 
 void TTurnModel::toNeutral(ICompletionListener* complete) {
@@ -1134,5 +1272,6 @@ void TMove2::turn(double angle) {
 void TMove2::setSpeed(double speed) {
     MoveDownModel.Speed = speed;
     MoveForwardModel.Speed = speed;
+    TurnModel.Speed = speed;
 }
 

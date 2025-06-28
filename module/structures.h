@@ -5,6 +5,8 @@
 
 #include <string>
 #include <iostream>
+#include <cmath>
+
 
 struct TPoint2D {
     // position of leg tip
@@ -82,8 +84,9 @@ struct TLeg  : public ICompletionListener, IProcess, TPoint2D {
 
 struct TSkeleton : public ICompletionListener, IProcess {
 
-     //static constexpr double FW = 
-     //static constexpr double FH = 
+     // Frame size, distance between edge legs vertical axies
+     static constexpr double FW = 220;
+     static constexpr double FH = 175;
 
      // H legs to be down
      static constexpr double Hdown = 20;
@@ -278,11 +281,18 @@ struct TMove : public ICompletionListener {
 
 struct TSkeleton2 : public ICompletionListener, IProcess {
      
+     // Frame size, distance between edge legs vertical axies
+     static constexpr double FW = 220;
+     static constexpr double FH = 175;
+
      // H legs to be down
      static constexpr double Hdown = 20;
 
      // min D
      static constexpr double D0 = 60;
+
+     // max turn in degrees
+     static constexpr double Tmax = 15 * M_PI / 180;
 
      // Walking H
      // min H
@@ -304,6 +314,15 @@ struct TSkeleton2 : public ICompletionListener, IProcess {
 
       // X for down position
      double XD;
+
+     // Turn Radius of edge legs in neutral
+     double RE;
+
+     // Turn Radius of middle legs in neutral
+     double RM;
+
+     // Angle from center to tip of edge leg in neutral
+     double AN;
 
      TLeg Leg0;
      TLeg Leg1;
@@ -425,7 +444,8 @@ struct IStepModel : public IMoveModel {
                Leg(&leg),
                Group(group) {}
 
-          void step(bool& stateAchieved, bool* liftedGroups);
+          void step(bool& stateAchieved, bool* liftedGroups, int numGroups);
+          void checkLifted(bool* liftedGroups);
           void keep() {
                keepX();
                keepY();
@@ -441,6 +461,13 @@ struct IStepModel : public IMoveModel {
 
      };
 
+     static constexpr int GROUPS[4][6] = {{0, 0, 0, 0, 0, 0},
+                                          {0, 0, 0, 0, 0, 0},
+                                          {0, 1, 0, 1, 0, 1},
+                                          {0, 1, 2, 2, 1, 0}};
+
+     int NumGroups;
+
      TSteppingLeg Leg0;
      TSteppingLeg Leg1;
      TSteppingLeg Leg2;
@@ -448,14 +475,15 @@ struct IStepModel : public IMoveModel {
      TSteppingLeg Leg4;
      TSteppingLeg Leg5;
 
-     IStepModel(TSkeleton2* skeleton) :
+     IStepModel(TSkeleton2* skeleton, int numGroups) :
           IMoveModel(skeleton),
-          Leg0(skeleton->Leg0, 0),
-          Leg1(skeleton->Leg1, 1),
-          Leg2(skeleton->Leg2, 0),
-          Leg3(skeleton->Leg3, 1),
-          Leg4(skeleton->Leg4, 0),
-          Leg5(skeleton->Leg5, 1) {}
+          NumGroups(numGroups),
+          Leg0(skeleton->Leg0, GROUPS[numGroups][0]),
+          Leg1(skeleton->Leg1, GROUPS[numGroups][1]),
+          Leg2(skeleton->Leg2, GROUPS[numGroups][2]),
+          Leg3(skeleton->Leg3, GROUPS[numGroups][3]),
+          Leg4(skeleton->Leg4, GROUPS[numGroups][4]),
+          Leg5(skeleton->Leg5, GROUPS[numGroups][5]) {}
 
      bool step();
      bool stepToNeutral();
@@ -473,7 +501,7 @@ struct TMoveDownModel : public IStepModel {
      EState TargetState;
 
      TMoveDownModel(TSkeleton2* skeleton) :
-          IStepModel(skeleton) {}
+          IStepModel(skeleton, 3) {}
      
      bool setTargetsForLegs();
      void setState(EState newState);
@@ -491,11 +519,13 @@ struct TMoveForwardModel : public IStepModel {
      bool StopNeutral;
 
      TMoveForwardModel(TSkeleton2* skeleton) :
-          IStepModel(skeleton),
+          IStepModel(skeleton, 2),
           State(0),
           LeftDistance(0),
           StopNeutral(true) {}
 
+     bool groundedGroup1(double newState);
+     bool groundedGroup2(double newState);
      bool setTargetsForLegs();
      void toNeutral(ICompletionListener* complete = NULL);
      void moveForward(double distance, ICompletionListener* complete = NULL);
@@ -507,11 +537,13 @@ struct TTurnModel : public IStepModel {
      bool StopNeutral;
 
      TTurnModel(TSkeleton2* skeleton) :
-          IStepModel(skeleton),
+          IStepModel(skeleton, 2),
           State(0),
           LeftAngle(0),
           StopNeutral(true) {}
 
+     bool groundedGroup1(double newState);
+     bool groundedGroup2(double newState);
      bool setTargetsForLegs();
      void toNeutral(ICompletionListener* complete = NULL);
      void turnAngle(double angle, ICompletionListener* complete = NULL);

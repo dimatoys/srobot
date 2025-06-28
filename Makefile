@@ -52,7 +52,11 @@ runtest1:
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; sudo ./test1"
 
 killtest1:
-	rsh $(REMOTE_HOST) "sudo kill `ps -e | grep test1| awk '{print $1}'`"
+	#rsh $(REMOTE_HOST) "sudo kill `ps -C test1 -o pid=`"
+	rsh $(REMOTE_HOST) "ps -C test1 -o pid= | xargs sudo kill"
+
+pstest1:
+	rsh $(REMOTE_HOST) "ps -e | grep test1"
 
 piclean:
 	rsync -rci * $(REMOTE_HOST):$(REMOTE_PATH)
