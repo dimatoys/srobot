@@ -109,570 +109,6 @@ int TLeg::getMaxTargetDistance() {
     return Bd > Ad ? (Bd > Cd ? Bd : Cd) : (Ad > Cd ? Ad : Cd);
 }
 
-bool TLeg::countTurn(double angle) {
-    double gx = GX + X;
-    double gy = GY + Y; 
-    double r = sqrt(gx * gx + gy * gy);
-    double a = atan2(gy, gx);
-    double a2 = a + angle * M_PI / 180.0;
-
-    double x2 = r * cos(a2) - GX;
-    double y2 = r * sin(a2) - GY;
-
-    cout << "countTurn " << Id << " ("<< X << ", " << Y << ") g=(" << gx << ", " << gy <<
-         ") r=" << r << " a=" << (a * 180 / M_PI) << " a2=" << (a2 * 180 / M_PI) << " new=(" << x2 <<
-         ", " << y2 << ") " << endl;
-
-    X = x2;
-    Y = y2;
-    return countABC();
-}
-
-void TSkeleton::complete(IProcess* src){
-    if (Complete != NULL) {
-        if ((Leg0.Complete == NULL) &&
-            (Leg1.Complete == NULL) &&
-            (Leg2.Complete == NULL) &&
-            (Leg3.Complete == NULL) &&
-            (Leg4.Complete == NULL) &&
-            (Leg5.Complete == NULL)) {
-                auto complete = Complete;
-                Complete = NULL;
-                complete->complete(this);
-        }
-    }
-}
-
-void TSkeleton::initPosition() {
-
-    DX = 0;
-    DY1 = 0;
-    DY2 = 0;
-
-    H1 = Hdown;
-    H2 = H1;
-
-    X1 = Leg0.C + sqrt(Leg0.B*Leg0.B - Leg0.A*Leg0.A);
-    X2 = X1;
-
-    if (count()) {
-        setAngles();
-    }
-}
-
-void TSkeleton::countParams() {
-    
-    // Alpha
-    double A2 = 25 * M_PI / 180;
-    
-    // Walking H
-    // min H
-    //H0 = sqrt(Leg0.B * Leg0.B - D0*D0) - Leg0.A;
-    H0 = 100;
-
-    // Neutral X for edge legs
-    XN = (D0 + Leg0.C) * cos(A2);
-
-    // max distance leg can reach for H0
-    double D = Leg0.C + sqrt((Leg0.A + Leg0.B) * (Leg0.A + Leg0.B) - H0 * H0);
-
-    // max Y for edge leg
-    double Ymax = sqrt(D*D - XN*XN);
-
-    // min Y for edge leg
-    double Ymin = XN * tan(A2);
-
-    // step size (max for edge leg, should be less or equal middle: 2 * D * sin(A2))
-    S = Ymax - Ymin - 100;
-
-    // X for middle
-    XM1 = S / (2 * tan(A2));
-    XM2 = XM1;
-
-    // Neutral Y for edge
-    Y = (Ymax + Ymin) / 2;
-
-    cout << "H0=" << H0 << " S=" << S << " XN=" << XN << " XM=" << XM1 << " Y=" << Y << endl;
-}
-
-bool TSkeleton::count() {
-    Leg0.H = H1;
-    Leg0.X = X1 + DX;
-    Leg0.Y = Y + DY1;
-
-    Leg1.H = H2;
-    Leg1.X = XM2 + DX;
-    Leg1.Y = DY2;
-
-    Leg2.H = H1;
-    Leg2.X = X1 + DX;
-    Leg2.Y = -Y + DY1;
- 
-    Leg3.H = H2;
-    Leg3.X = X2 - DX;
-    Leg3.Y = Y + DY2;
-
-    Leg4.H = H1;
-    Leg4.X = XM1 - DX;
-    Leg4.Y = DY1;
- 
-    Leg5.H = H2;
-    Leg5.X = X2 + -DX;
-    Leg5.Y = -Y + DY2;
-
-    return Leg0.countABC() &&
-           Leg1.countABC() &&
-           Leg2.countABC() &&
-           Leg3.countABC() &&
-           Leg4.countABC() &&
-           Leg5.countABC();
-}
-
-void TSkeleton::setAngles() {
-    Leg0.setAngles();
-    Leg1.setAngles();
-    Leg2.setAngles();
-    Leg3.setAngles();
-    Leg4.setAngles();
-    Leg5.setAngles();
-}
-
-void TSkeleton::setAngles(ICompletionListener* complete) {
-    auto dmax = Leg0.getMaxTargetDistance();
-    auto d  = Leg1.getMaxTargetDistance();
-    if (d > dmax) { dmax = d; }
-    d  = Leg2.getMaxTargetDistance();
-    if (d > dmax) { dmax = d; }
-    d  = Leg3.getMaxTargetDistance();
-    if (d > dmax) { dmax = d; }
-    d  = Leg4.getMaxTargetDistance();
-    if (d > dmax) { dmax = d; }
-    d  = Leg5.getMaxTargetDistance();
-    if (d > dmax) { dmax = d; }
-
-    Complete = complete;
-    Leg0.setAngles(Speed, dmax, this);
-    Leg1.setAngles(Speed, dmax, this);
-    Leg2.setAngles(Speed, dmax, this);
-    Leg3.setAngles(Speed, dmax, this);
-    Leg4.setAngles(Speed, dmax, this);
-    Leg5.setAngles(Speed, dmax, this);
-}
-
-TMove::TMove(TSkeleton* skeleton) {
-    Skeleton = skeleton;
-
-    A = Skeleton->Leg0.A;
-    B = Skeleton->Leg0.B;
-    C = Skeleton->Leg0.C;
-
-    H1 = skeleton->H1;
-    H2 = skeleton->H2;
-    X1 = skeleton->X1;
-    X2 = skeleton->X2;
-    XM1 = skeleton->XM1;
-    XM2 = skeleton->XM2;
-    Y = skeleton->Y;
-    DY1 = skeleton->DY1;
-    DY2 = skeleton->DY2;
-    DX = skeleton->DX;
-
-    TY = 0.0;
-
-    cout << "Init: H1=" << H1 << " H2=" << H2 << " X1=" << X1 << " XM1=" << XM1 << " Y=" << Y << endl;
-}
-
-
-void TMove::complete(IProcess* src) {
-    cout << "Complete" << endl;
-/*
-    string s;
-    cout << "y/n:";
-    cin >> s;
-    if (s == "n") {
-        return;
-    }
-*/
-    move();
-}
-
-double TMove::getMinHforXY(double X, double Y) {
-    auto D = sqrt(X*X + Y*Y) - C;
-    auto AH2 = B*B - D * D;
-    cout << "X=" << X << " Y=" << Y << " D=" << D << " AH2=" << AH2 << " A2=" << (A*A) << endl; 
-    if (AH2 > A*A) {
-        return sqrt(AH2) - A;
-    } else {
-        return 0;
-    }
-
-}
-
-bool TMove::run() {
-    if (Skeleton->count()) {
-        Skeleton->setAngles(this);
-        return true;
-    } else {
-        cout << "Calculation Error" << endl;
-        return false;
-    }
-}
-
-bool TMove::moveXDYStayOn2() {
-    // stay on group 2, need to move
-    if (X1 != Skeleton->X1 || DY1 != Skeleton->DY1) {
-        cout << "need to move X1,DY1/DY2" << endl;
-        Skeleton->X1 = X1;
-        Skeleton->DY1 = DY1;
-        Skeleton->DY2 = DY2;
-        return run();
-    } else {
-        if (H1 != Skeleton->H1) {
-            cout << "X1/DY1 achieved, need to plase group 1 on the graund" << endl;
-            Skeleton->H1 = H1;
-            return run();
-        } else {
-            cout << "need to move only X2,DY2, switch the ground group (shold neven happen)" << endl;
-            Skeleton->H1 = Skeleton->H2;
-            return run();
-        }
-    }
-}
-
-bool TMove::moveXDYStayOn1() {
-    // stay on group 1, need to move
-    if (X2 != Skeleton->X2 || DY2 != Skeleton->DY2) {
-        cout << "need to move X2,DY2/DY1" << endl;
-        Skeleton->X2 = X2;
-        Skeleton->DY1 = DY1;
-        Skeleton->DY2 = DY2;
-        return run();
-    } else {
-        if (H2 != Skeleton->H2) {
-            Skeleton->H2 = H2;
-            return run();
-        } else {
-            cout << "need to move only X1,DY1, switch the ground group (shold neven happen)" << endl;
-            Skeleton->H2 = Skeleton->H1;
-            return run();
-        }
-    }
-}
-
-bool TMove::liftGroup1() {
-    Skeleton->H1 = Skeleton->Hdown;
-    return run();
-}
-
-bool TMove::liftGroup2() {
-    Skeleton->H2 = Skeleton->Hdown;
-    return run();    
-}
-
-bool TMove::move() {
-    // H1 - H group 1
-    // H2 - H group 2
-    // DY1 - front shift, group 1
-    // DY2 - front shift, group 2
-    // X1,X2 - X for group 1 and 2
-    // TY  - target Y
-
-    if ((H1 == Skeleton->H1) &&
-        (H2 == Skeleton->H2) &&
-        (X1 == Skeleton->X1) &&
-        (X2 == Skeleton->X2) &&
-        (DY1 == Skeleton->DY1) &&
-        (DY2 == Skeleton->DY2)) {
-        
-        if (TY > 0.0) {
-            // can move on group 1
-            auto g1 = Skeleton->S / 2 - Skeleton->DY1;
-            // can move on group 2
-            auto g2 = Skeleton->S / 2 - Skeleton->DY2;
-            cout << "Need to move TY=" << TY << " g1=" << g1 << " g2=" << g2 << endl;
-            if (Skeleton->H1 > Skeleton->Hdown) {
-                // group 1 is not up
-                if (Skeleton->H1 == Skeleton->H2) {
-                    cout << "stay on all legs" << endl;
-                    if (g1 <= g2) {
-                        // g1 has less or equal space to move
-                        if (g1 > 0) {
-                            cout << "0 < g1 <= g2" << endl;
-                            if (TY <= g1) {
-                                cout << "no need to walk, just move TY" << endl;
-                                DY1 = Skeleton->DY1 + TY;
-                                DY2 = Skeleton->DY2 + TY;
-                                TY = 0;
-                            } else {
-                                cout << "need to walk, move just on distance g1 now" << endl;
-                                DY1 = Skeleton->DY1 + g1;
-                                DY2 = Skeleton->DY2 + g1;
-                                TY -= g1;
-                            }
-                        } else {
-                            cout << "g1 does not have space to move, need to move it back" << endl;
-                            H1 = Skeleton->Hdown;
-                            H2 = Skeleton->H0;
-                        }
-                    } else {
-                        // g2 has less space to move
-                        if (g2 > 0) {
-                            cout << "0 < g2 < g1" << endl;
-                            if (TY <= g2) {
-                                cout << "no need to walk, just move TY" << endl;
-                                DY1 = Skeleton->DY1 + TY;
-                                DY2 = Skeleton->DY2 + TY;
-                                TY = 0;
-                            } else {
-                                cout << "need to walk, move just on g2 distance now" << endl;
-                                DY1 = Skeleton->DY1 + g2;
-                                DY2 = Skeleton->DY2 + g2;
-                                TY -= g2;
-                            }
-                        } else {
-                            cout << "g2 does not have space to move, need to move it  back" << endl;
-                            H1 = Skeleton->H0;
-                            H2 = Skeleton->Hdown;
-                        }
-                    }
-                } else {
-                    if (Skeleton->H1 > Skeleton->H2) {
-                        cout << "stay on group 1" << endl;
-                        if (g1 > 0) {
-                            cout << "group 1 can move" << endl;
-                            if (TY <= g1) {
-                                cout << "no need to walk, just move TY" << endl;
-                                DY1 = Skeleton->DY1 + TY;
-                                DY2 = Skeleton->DY2 - TY;
-                                TY = 0;
-                            } else {
-                                cout << "need to walk, move on group 1, moving back group 2" << endl;
-                                DY1 = Skeleton->DY1 + g1;
-                                DY2 = -Skeleton->S / 2;
-                                TY -= g1;
-                            }
-                        } else {
-                            // no space to move on group 1
-                            if (g2 == Skeleton->S) {
-                                cout << "no space to move group 1, group 2 is fully back, so just switch groups" << endl;
-                                H1 = Skeleton->H0;
-                                H2 = Skeleton->H0;
-                            } else {
-                                cout << "no space to move group 1, move group 2 back" << endl;
-                                H1 = Skeleton->H0;
-                                H2 = Skeleton->Hdown;
-                                DY2 = -Skeleton->S / 2;
-                            }
-                        }
-                    } else {
-                        cout << "stay on group 2" << endl;
-                        if (g2 > 0) {
-                            cout << "group 2 can move" << endl;
-                            if (TY <= g2) {
-                                cout << "no need to walk, just move TY" << endl;
-                                DY1 = Skeleton->DY1 - TY;
-                                DY2 = Skeleton->DY2 + TY;
-                                TY = 0;
-                            } else {
-                                cout << "need to walk, move on group 2, moving back group 1" << endl;
-                                DY1 = -Skeleton->S / 2;
-                                DY2 = Skeleton->DY2 + g2;
-                                TY -= g2;
-                            }
-                        } else {
-                            // no space to move on group 2
-                            if (g1 == Skeleton->S) {
-                                cout << "no space to move group 2, group 1 is fully back, so just switch groups" << endl;
-                                H1 = Skeleton->H0;
-                                H2 = Skeleton->H0;
-                            } else {
-                                cout << "no space to move group 2, move group 1 back" << endl;
-                                H1 = Skeleton->Hdown;
-                                H2 = Skeleton->H0;
-                                DY1 = -Skeleton->S / 2;
-                            }
-                        }
-                    }
-                }
-            } else {
-                // group 1 is up
-                if (Skeleton->H2 > Skeleton->Hdown) {
-                    cout << "stay on group 2" << endl;
-                    if (g2 > 0) {
-                        cout << "group 2 can move" << endl;
-                        if (TY <= g2) {
-                            cout << "no need to walk, just move TY" << endl;
-                            DY1 = Skeleton->DY1 - TY;
-                            DY2 = Skeleton->DY2 + TY;
-                            TY = 0;
-                        } else {
-                            cout << "need to walk, move on group 2, moving back group 1" << endl;
-                            DY1 = -Skeleton->S / 2;
-                            DY2 = Skeleton->DY2 + g2;
-                            TY -= g2;
-                        }
-                    } else {
-                        // no space to move on group 2
-                        if (g1 == Skeleton->S) {
-                            cout << "no space to move group 2, group 1 is fully back, so just switch groups" << endl;
-                            H1 = Skeleton->H0;
-                            H2 = Skeleton->H0;
-                        } else {
-                            cout << "no space to move group 2, move group 1 back" << endl;
-                            H1 = Skeleton->Hdown;
-                            H2 = Skeleton->H0;
-                            DY1 = -Skeleton->S / 2;
-                        }
-                    }
-                } else {
-                    cout << "down position, lets. lift" << endl;
-                    H1 = Skeleton->H0;
-                    H2 = Skeleton->H0;
-                }
-            }
-
-/*
-            if (Skeleton->H1 == Skeleton->H0 && 
-                Skeleton->H2 == Skeleton->H0 &&
-                Skeleton->X1 == Skeleton->XN &&
-                Skeleton->X2 == Skeleton->XN) {
-
-                // ready to walk
-                
-                    cout << "Need to walk DY1=" << DY1 << " DY2=" << DY2 << endl;
-                    if (Skeleton->DY1 < Skeleton->DY2) {
-                        TY -= Skeleton->S / 2 - Skeleton->DY1;
-                        DY1 = Skeleton->S / 2;
-                        DY2 = - Skeleton->S / 2;
-                    } else {
-                        TY -= Skeleton->S / 2 - Skeleton->DY2;
-                        DY2 = Skeleton->S / 2;
-                        DY1 = - Skeleton->S / 2;
-                    }
-                }
-            } else {
-                cout << "need to move to a walking position first" << endl;
-                H1 = Skeleton->H0;
-                H2 = Skeleton->H0;
-                X1 = Skeleton->XN;
-                X2 = Skeleton->XN;
-            }
-*/
-        } else {
-            cout << "Everything is approached" << endl;
-            return true;
-        }
-    } else {
-        cout << "need to finalize position: H1,H2, X1,X2, DY1 or DY2 are not finished" << endl;
-    }
-
-    if (X1 != Skeleton->X1 || X2 != Skeleton->X2 || DY1 != Skeleton->DY1 || DY2 != Skeleton->DY2) {
-        //cout << "Need to move X1, X2, DY1 or DY2" << endl;
-        if (Skeleton->H1 > Skeleton->Hdown) {
-            // group 1 is not in upper position
-            if (Skeleton->H2 > Skeleton->Hdown) {
-                // legs are not in upper porsition
-                if (Skeleton->H1 == Skeleton->H2) {
-                    cout << "all legs on the ground" << endl;
-                    if (X1 == Skeleton->X1 && X2 == Skeleton->X2 && ((DY1 - Skeleton->DY1) == (DY2 - Skeleton->DY2))) {
-                        cout << "both groups move togather" << endl;
-                        Skeleton->DY1 = DY1;
-                        Skeleton->DY2 = DY2;
-                        return run();
-                    } else {
-                        if (X1 != Skeleton->X1 || DY1 != Skeleton->DY1) {
-                            cout << "Need to move X1 or DY1/DY2, lift group 1" << endl;
-                            return liftGroup1();
-                        } else {
-                            cout << "Need to move X2 or DY2, lift group 2" << endl;
-                            return liftGroup2();
-                        }
-                    }
-                } else {
-                    if (Skeleton->H1 > Skeleton->H2) {
-                        cout << "stay on group 1" << endl;
-                        return moveXDYStayOn1();
-                    } else {
-                        cout << "stay on group 2" << endl;
-                        return moveXDYStayOn2();
-                    }
-                }
-            } else {
-                cout << "stay on group 1" << endl;
-                return moveXDYStayOn1();
-            }
-        } else {
-            // group 1 is in upper position
-            if (Skeleton->H2 > Skeleton->Hdown) {
-                cout << "stay on group 2" << endl;
-                return moveXDYStayOn2();
-            } else {
-                cout << "all legs are in upper position" << endl;
-                double Hmin1 = getMinHforXY(X1,Y + DY1);
-                double Hmin2 = getMinHforXY(X2,Y + DY2);
-                if (Hmin1 > Skeleton->Hdown || Hmin2 > Skeleton->Hdown) {
-                    cout << "need to go up before moving X1,Y1 and X2,Y2 Hmin1=" << Hmin1 << " Hmin2=" << Hmin2 << endl;
-                    Skeleton->H1 = H1;
-                    Skeleton->H2 = H2;
-                    return run();
-                } else {
-                    cout << "X1,DY1,X2,Dy2 can be moved now, Hmin1=" << Hmin1 << " Hmin2=" << Hmin2 << endl;
-                    Skeleton->X1 = X1;
-                    Skeleton->DY1 = DY1;
-                    Skeleton->X2 = X2;
-                    Skeleton->DY2 = DY2;
-                    return run();
-                }
-            }
-        }
-    } else {
-        //cout << "No need to move X1,Y1 or X2,Y2" << endl;
-        if (H1 != Skeleton->H1 || H2 != Skeleton->H2) {
-            if (H1 != Skeleton->H1) {
-                cout << "Need to change H1" << endl;
-                Skeleton->H1 = H1;    
-            }
-            if (H2 != Skeleton->H2) {
-                cout << "Need to change H2" << endl;
-                Skeleton->H2 = H2;
-            }
-            return run();
-        } else {
-            cout << "No need to change anything (should not be reached)" << endl;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-
-bool TMove::toNeutral() {
-    H1 = Skeleton->H0;
-    H2 = Skeleton->H0;
-    X1 = Skeleton->XN;
-    X2 = Skeleton->XN;
-    DY1 = 0;
-    DY2 = 0;
-    TY = 0;
-    return move();
-}
-
-bool TMove::toDown() {
-    H1 = Skeleton->Hdown;
-    H2 = Skeleton->Hdown;
-    X1 = C + sqrt(B*B - A*A);
-    X2 = X1;
-    TY = 0;
-    return move();
-}
-
-bool TMove::moveForward(double distance) {
-    TY = distance;
-    return move();
-}
-
-
 void TSkeleton2::complete(IProcess* src){
     if (Complete != NULL) {
         if ((Leg0.Complete == NULL) &&
@@ -810,18 +246,22 @@ void IMoveModel::move() {
     }
 }
 
-void IStepModel::TSteppingLeg::step(bool& stateAchieved, bool* liftedGroups, int numGroups) {
+void IStepModel::TSteppingLeg::step(bool& stateAchieved,
+                                    bool& movement,
+                                    bool* liftedGroups,
+                                    int numGroups) {
+    // check if leg is fully lifted
     if (Leg->H > TSkeleton2::Hdown) {
-        // leg is not lifted
+        // leg is not fully lifted
         if ((Leg->X == X) && (Leg->Y == Y)) {
             // leg on the right place
             // just make sure it is on the ground
             Leg->H = TSkeleton2::H0;
         } else {
-            // log is not on the right place
+            // leg is not on the right place
             // need to lift it first
             stateAchieved = false;
-            // check if any other group already lifted
+            // check if any other groups are already lifted
             bool otherLifted = false;
             for (int i = 0; i < numGroups; ++i) {
                 if (i != Group) {
@@ -829,7 +269,6 @@ void IStepModel::TSteppingLeg::step(bool& stateAchieved, bool* liftedGroups, int
                 }
             }
             if (!otherLifted) {
-            //if (!liftedGroups[1 - Group]) {
                 // can lift, as the other group is on the ground
                 // so lift it
                 Leg->H = TSkeleton2::Hdown;
@@ -838,10 +277,17 @@ void IStepModel::TSteppingLeg::step(bool& stateAchieved, bool* liftedGroups, int
         }
     } else {
         // leg is lifted
-        // just move it down
-        Leg->X = X;
-        Leg->Y = Y;
-        Leg->H = TSkeleton2::H0;
+        // check if it is on the right place
+        if ((Leg->X == X) && (Leg->Y == Y)) {
+            // it is on the right place, just move it down
+            Leg->H = TSkeleton2::H0;
+        } else {
+            // not on the right place, need to move
+            stateAchieved = false;
+            movement = true;
+            Leg->X = X;
+            Leg->Y = Y;
+        }
     }
 }
 
@@ -849,7 +295,7 @@ void IStepModel::TSteppingLeg::checkLifted(bool* liftedGroups) {
     liftedGroups[Group] = liftedGroups[Group] || (Leg->H < TSkeleton2::H0);
 }
 
-bool IStepModel::step() {
+bool IStepModel::step(bool& movement) {
 
     bool stateAchieved = true;
     bool liftedGroups[] = {false, false, false, false, false, false};
@@ -860,12 +306,12 @@ bool IStepModel::step() {
     Leg4.checkLifted(liftedGroups);
     Leg5.checkLifted(liftedGroups);
 
-    Leg0.step(stateAchieved, liftedGroups, NumGroups);
-    Leg1.step(stateAchieved, liftedGroups, NumGroups);
-    Leg2.step(stateAchieved, liftedGroups, NumGroups);
-    Leg3.step(stateAchieved, liftedGroups, NumGroups);
-    Leg4.step(stateAchieved, liftedGroups, NumGroups);
-    Leg5.step(stateAchieved, liftedGroups, NumGroups);
+    Leg0.step(stateAchieved, movement, liftedGroups, NumGroups);
+    Leg1.step(stateAchieved, movement, liftedGroups, NumGroups);
+    Leg2.step(stateAchieved, movement, liftedGroups, NumGroups);
+    Leg3.step(stateAchieved, movement, liftedGroups, NumGroups);
+    Leg4.step(stateAchieved, movement, liftedGroups, NumGroups);
+    Leg5.step(stateAchieved, movement, liftedGroups, NumGroups);
 
     return stateAchieved;
 }
@@ -883,12 +329,14 @@ bool IStepModel::stepToNeutral() {
     Leg4.Y = 0;
     Leg5.X = Skeleton->XN;
     Leg5.Y = -Skeleton->Y;
-    return step();
+    bool movement = false;
+    return step(movement);
 }
 
 void TMoveDownModel::setState(EState newState) {
 
     bool stateUpdated = true;
+    bool movement = false;
     
     switch(newState) {
         case STATE_DOWN:
@@ -913,7 +361,7 @@ void TMoveDownModel::setState(EState newState) {
             Leg4.keepY();
             Leg5.X = Skeleton->XD;
             Leg5.keepY();
-            stateUpdated = step();
+            stateUpdated = step(movement);
             break;
         case STATE_NEUTRAL:
             stateUpdated = stepToNeutral();
@@ -990,15 +438,16 @@ bool TMoveForwardModel::groundedGroup1(double newState) {
     Leg4.keep();
     Leg5.keepX();
     Leg5.Y = -Skeleton->Y - newState;
+
+    bool movement = false;
+    bool stateAchieved = step(movement);
             
-    if (step()) {
+    if (movement) {
         Skeleton->Leg0.Y = Skeleton->Y + newState;
         Skeleton->Leg2.Y = -Skeleton->Y + newState;
         Skeleton->Leg4.Y = newState;
-        return true;
-    } else {
-        return false;
     }
+    return stateAchieved;
 }
 
 bool TMoveForwardModel::groundedGroup2(double newState) {
@@ -1011,14 +460,16 @@ bool TMoveForwardModel::groundedGroup2(double newState) {
     Leg4.keepX();
     Leg4.Y = newState;
     Leg5.keep();
-    if (step()) {
+
+    bool movement = false;
+    bool stateAchieved = step(movement);
+            
+    if (movement) {
         Skeleton->Leg1.Y = - newState;
         Skeleton->Leg3.Y = Skeleton->Y - newState;
         Skeleton->Leg5.Y = -Skeleton->Y - newState;
-        return true;
-    } else {
-        return false;
     }
+    return stateAchieved;
 }
 
 bool TMoveForwardModel::setTargetsForLegs() {
@@ -1099,7 +550,11 @@ bool TTurnModel::groundedGroup1(double newState) {
     Leg4.keep();
     Leg5.X = Skeleton->RE * cos(Skeleton->AN - newState) - Skeleton->FW / 2;
     Leg5.Y = -(Skeleton->RE * sin(Skeleton->AN - newState) - Skeleton->FH / 2);
-    if (step()) {
+
+    bool movement = false;
+    bool stateAchieved = step(movement);
+            
+    if (movement) {
         Skeleton->Leg0.X = Skeleton->RE * cos(Skeleton->AN + newState) - Skeleton->FW / 2;
         Skeleton->Leg0.Y = Skeleton->RE * sin(Skeleton->AN + newState) - Skeleton->FH / 2;
         Skeleton->Leg2.X = Skeleton->RE * cos(Skeleton->AN - newState) - Skeleton->FW / 2;
@@ -1109,10 +564,8 @@ bool TTurnModel::groundedGroup1(double newState) {
         if (Speed > 0.5) {
             StepSpeed = 0.5;
         }
-        return true;
-    } else{
-        return false;
     }
+    return stateAchieved;
 }
 
 bool TTurnModel::groundedGroup2(double newState) {
@@ -1125,7 +578,11 @@ bool TTurnModel::groundedGroup2(double newState) {
     Leg4.X = Skeleton->RM * cos(-newState) - Skeleton->FW / 2;
     Leg4.Y = Skeleton->RM * sin(-newState);
     Leg5.keep();
-    if(step()) {
+
+    bool movement = false;
+    bool stateAchieved = step(movement);
+            
+    if (movement) {
         Skeleton->Leg1.X = Skeleton->RM * cos(-newState) - Skeleton->FW / 2;
         Skeleton->Leg1.Y = Skeleton->RM * sin(-newState);
         Skeleton->Leg3.X = Skeleton->RE * cos(Skeleton->AN + newState) - Skeleton->FW / 2;
@@ -1135,10 +592,8 @@ bool TTurnModel::groundedGroup2(double newState) {
         if (Speed > 0.5) {
             StepSpeed = 0.5;
         }
-        return true;
-    } else {
-        return false;
     }
+    return stateAchieved;
 }
 
 bool TTurnModel::setTargetsForLegs() {

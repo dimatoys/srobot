@@ -37,9 +37,9 @@ def shutdown():
     shutdown_server()
     return Response("{'status': 'ok'}", content_type='text/plain; charset=utf-8')
 
-@app.route("/command/<name>/<value>")
-def cmd(name,value):
-    status = robotCmd(name, value)
+@app.route("/command/<cmd>/<arg>")
+def command(arg,cmd):
+    status = robotCmd(cmd, arg)
     return Response("{'status': '%d'}" % status , content_type='text/plain; charset=utf-8')
 
 app.run(host='0.0.0.0', port=8000, debug=True)

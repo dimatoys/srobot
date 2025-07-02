@@ -1,5 +1,6 @@
 #include "mechanics.h"
 #include "structures.h"
+#include "module.h"
 
 #include <iostream>
 #include <unistd.h>
@@ -313,219 +314,6 @@ void test2() {
 
 }
 
-void test3() {
-
-    TSkeleton skeleton("spider",
-    // 0
-                        14, 1520, 650,
-                        15, 1400, 670,
-                        18, 1460, -670,
-    
-    // 1
-                        2, 1470, -675,
-                        3, 1370, -650,
-                        4, 1500, -660,
-    
-    // 2
-                        22, 1440, -670,
-                        27, 1430, -660,
-                        17, 1570, -660,
-    
-    // 3
-                        0, 1410, 650,
-                        5, 1540, 650,
-                        6, 1520, 650,
-    
-    // 4
-                        13, 1550, 670,
-                        19, 1550, 650,
-                        26, 1460, 650,
-
-    // 5
-                        16, 1560, -650,
-                        20, 1390, -660,
-                        21, 1420, 650);
-
-/*
-    for H = 60: f:-60..60
-    for h=100: s -90..90
-*/
-
-
-    while(true) {
-        string cmd;
-        cin >> cmd;
-        if (cmd.length() == 0) {
-            continue;
-        }
-
-        if (cmd == "exit") {
-            break;
-        }
-        
-        if (cmd == "init") {
-            skeleton.initPosition();
-            continue;
-        }
-
-        if (cmd.size() > 1) {
-            int value;
-            bool left = true;
-            bool right = true;
-            char c = cmd[0];
-            if (c == 'l' || c == 'r') {
-                if (c == 'l') {
-                    right = false;
-                } else {
-                    left = false;
-                }
-                c = cmd[1];
-                value = stoi(cmd.substr(2));
-            } else {
-                value = stoi(cmd.substr(1));
-            }
-            switch (c) {
-            case 'h':
-                if (left) {
-                    skeleton.H1 = value;
-                }
-                if (right) {
-                    skeleton.H2 = value;
-                }
-                if (skeleton.count()) {
-                    skeleton.setAngles(NULL);
-                }
-                break;
-            case 'x':
-                skeleton.X1 = value;
-                skeleton.X2 = value;
-                if (skeleton.count()) {
-                    skeleton.setAngles(NULL);
-                }
-                break;
-            case 'y':
-                skeleton.Y = value;
-                if (skeleton.count()) {
-                    skeleton.setAngles(NULL);
-                }
-                break;
-            case 'f':
-                if (left) {
-                    skeleton.DY1 = value;
-                }
-                if (right) {
-                    skeleton.DY2 = value;
-                }
-                if (skeleton.count()) {
-                    skeleton.setAngles(NULL);
-                }
-                break;
-            case 's':
-                skeleton.DX = value;
-                if (skeleton.count()) {
-                    skeleton.setAngles(NULL);
-                }
-                break;
-            case 'v':
-                skeleton.Speed = value / 1000.0;
-                break;
-            }
-        }
-
-    }
-
-}
-
-
-void test4() {
-
-    TSkeleton skeleton("spider",
-    // 0
-                        14, 1520, 650,
-                        15, 1400, 670,
-                        18, 1460, -670,
-    
-    // 1
-                        2, 1470, -675,
-                        3, 1370, -650,
-                        4, 1500, -660,
-    
-    // 2
-                        22, 1440, -670,
-                        27, 1430, -660,
-                        17, 1570, -660,
-    
-    // 3
-                        0, 1410, 650,
-                        5, 1540, 650,
-                        6, 1520, 650,
-    
-    // 4
-                        13, 1550, 670,
-                        19, 1550, 650,
-                        26, 1460, 650,
-
-    // 5
-                        16, 1560, -650,
-                        20, 1390, -660,
-                        21, 1420, 650);
-
-/*
-    for H = 60: f:-60..60
-    for h=100: s -90..90
-*/
-
-    skeleton.initPosition();
-    skeleton.Speed = 0.2;
-    
-    TMove move(&skeleton);
-
-    while(true) {
-        string cmd;
-        cout << "CMD:";
-        cin >> cmd;
-        if (cmd.length() == 0) {
-            continue;
-        }
-
-        if (cmd == "exit") {
-            break;
-        }
-        
-        if (cmd == "neutral") {
-            cout << "---------------------------------------------------" << endl;
-            move.toNeutral();
-            continue;
-        }
-
-        if (cmd == "down") {
-            cout << "---------------------------------------------------" << endl;
-            move.toDown();
-            continue;
-        }
-
-         if (cmd == "forward") {
-            double distance;
-            cout << "distance:";
-            cin >> distance;
-            cout << "---------------------------------------------------" << endl;
-            move.moveForward(distance);
-            continue;
-        }
- 
-
-        if (cmd == "speed") {
-            double speed;
-            cout << "[0..1000]:";
-            cin >> speed;
-            skeleton.Speed = speed / 1000.0;
-            continue;
-        }
-
-        cout << "incorrect command: [" << cmd << "]" << endl;
-    }
-}
-
 void test5() {
     TSkeleton2 skeleton("spider",
     // 0
@@ -614,22 +402,36 @@ void test5() {
     }
 }
 
+void test6() {
+    TModuleObject module;
+    init(&module);
+    string cmd;
+    string arg;
+    do {
+        string cmdarg;
+        cout << "CMD:";
+        cin >> cmd >> arg;
+        cout << "cmd=" << cmd << " arg=" << arg << endl;
+
+    } while(run_cmd(&module, cmd.c_str(), arg.c_str()) >= -1);
+
+    cout << "Exited" << endl;
+}
 
 int main(int argc, char *argv[]) {
 	
     cout << "start" << endl;
 
     initMechanics();
-
 	//test1();
     //test2();
-	//test3();
-    //test4();
     test5();
-
     cout << "stop" << endl;
 
     stopMechanics();
+
+
+    //test6();
 
     cout << "exit" << endl;
 

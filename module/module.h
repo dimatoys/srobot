@@ -1,11 +1,11 @@
 extern "C" {
 
 struct TModuleObject {
-    void* Robot;
+    void* Skeleton;
+    void* Move;
 };
 
 int init(TModuleObject* module);
-void shutdown(TModuleObject* module);
-int run_cmd(TModuleObject* module, char* cmd, char* arg);
+int run_cmd(TModuleObject* module, const char* cmd, const char* arg);
 
 }

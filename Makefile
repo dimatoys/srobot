@@ -23,7 +23,7 @@ $(OBJ)/%.o: $(OBJ)/%.c
 $(OBJ)/%.o: $(SRC)/%.cpp $(SRC)/%.h
 	$(CC) $(CPPFLAGS) -c -o $@ $<
 
-test1: $(OBJ)/test1.o $(OBJ)/mechanics.o $(OBJ)/structures.o
+test1: $(OBJ)/test1.o $(OBJ)/mechanics.o $(OBJ)/structures.o $(OBJ)/module.o
 	$(CC) -o $@ $^ $(LDFLAGS) -pthread $(PIGPIO_LIB) -lrt
 
 test2: $(OBJ)/test2.o
@@ -35,7 +35,7 @@ module.so: $(OBJ)/module.o  $(OBJ)/mechanics.o $(OBJ)/structures.o
 makerun:
 	rsync -rci * $(REMOTE_HOST):$(REMOTE_PATH)
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; make module.so"
-	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; sudo python web.py"
+	#rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; sudo python web.py"
 
 run:
 	rsync -rci * $(REMOTE_HOST):$(REMOTE_PATH)

@@ -6,7 +6,8 @@ g_ModuleData = None
 g_Logger = None
 
 class TModuleObject(Structure):
-	_fields_ = [("Robot", c_void_p)]
+	_fields_ = [("Skeleton", c_void_p),
+			    ("Move", c_void_p)]
 
 def log(m):
 	global g_Logger
@@ -24,24 +25,24 @@ def robotInit(logger):
 		g_RobotModule = cdll.LoadLibrary('/home/pi/git/sprobot/module.so')
 		g_RobotModule.init.argtypes = [POINTER(TModuleObject)]
 		g_RobotModule.init.restype = c_int
-		g_RobotModule.shutdown.argtypes = [POINTER(TModuleObject)]
 		g_RobotModule.run_cmd.argtypes = [POINTER(TModuleObject), c_char_p, c_char_p]
 		g_RobotModule.run_cmd.restype = c_int
 
 		g_ModuleData =  TModuleObject()
 		g_RobotModule.init(g_ModuleData)
-	return []
+		return 0
+	return -1
 	
 def robotShutdown():
 	global g_RobotModule
 	global g_ModuleData
 
 	if g_RobotModule is not None:
-		g_RobotModule.shutdown(g_ModuleData)
+		robotCmd("exit")
 		g_RobotModule = None
 
-def robotCmd(name, value):
+def robotCmd(cmd, arg=""):
 	global g_RobotModule
 	global g_ModuleData
 
-	return g_RobotModule.run_cmd(g_ModuleData, name.encode("UTF-8"), value.encode("UTF-8"))
+	return g_RobotModule.run_cmd(g_ModuleData, cmd.encode("UTF-8"), arg.encode("UTF-8"))
