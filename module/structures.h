@@ -93,9 +93,6 @@ struct TSkeleton2 : public ICompletionListener, IProcess {
      // min D
      static constexpr double D0 =  + TLeg::C + 60;
 
-     // max turn in degrees
-     static constexpr double Tmax = 15 * M_PI / 180;
-
      // Walking H
      // min H
      // base (walking) H (60..199)
@@ -125,6 +122,9 @@ struct TSkeleton2 : public ICompletionListener, IProcess {
 
      // Angle from center to tip of edge leg in neutral
      double AN;
+
+     // max turn in degrees per step
+     double Tmax;
 
      TLeg Leg0;
      TLeg Leg1;
@@ -338,6 +338,8 @@ struct TMoveDirModel : public IStepModel {
      double State;
      double LeftDistance;
      bool StopNeutral;
+     
+     double Dir;
 
      TMoveDirModel(TSkeleton2* skeleton) :
           IStepModel(skeleton, 2),
@@ -345,8 +347,8 @@ struct TMoveDirModel : public IStepModel {
           LeftDistance(0),
           StopNeutral(true) {}
 
-     //bool groundedGroup1(double newState);
-     //bool groundedGroup2(double newState);
+     bool groundedGroup1(double newState);
+     bool groundedGroup2(double newState);
      bool setTargetsForLegs();
      void toNeutral(ICompletionListener* complete = NULL);
      void moveDir(double distance, ICompletionListener* complete = NULL);

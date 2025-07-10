@@ -157,6 +157,7 @@ void TSkeleton2::countInitParams() {
     //XM = S / (2 * tan(A2));
     // Neutral Y for edge
     //Y = (Ymax + Ymin) / 2;
+    // Tmax = 30 * pi / 180;
 
     S = D - D0;
     XM = S / 2 + D0;
@@ -175,13 +176,16 @@ void TSkeleton2::countInitParams() {
     RE = sqrt(CX * CX + CY * CY);
 
      // Turn Radius of middle legs in neutral
-    RM = FW / 2 + XN;
+    RM = FW / 2 + XM;
 
     // Angle from center to tip of edge leg in neutral
     AN = atan2(CY, CX);
 
-    cout << "H0=" << H0 << "D =" << D << " S=" << S << " XN=" << XN << " XM=" << XM << " Y=" << Y
-         << " RE=" << RE << " RM=" << RM << " AN=" << (AN * 180 / M_PI) << endl;
+    // max turn angle per step
+    Tmax = asin(S / RE);
+
+    cout << "A2=" << (A2 * 180 / M_PI) << " D =" << D << " S=" << S << " XN=" << XN << " XM=" << XM << " Y=" << Y
+         << " RE=" << RE << " RM=" << RM << " AN=" << (AN * 180 / M_PI) << " Tmax=" << (Tmax * 180 / M_PI) << endl;
 }
 
 void TSkeleton2::setAngles() {
@@ -540,95 +544,6 @@ bool TMoveForwardModel::setTargetsForLegs() {
     return true;
 }
 
-bool TMoveDirModel::setTargetsForLegs() {
-
-    cout << "dir: distance=" << LeftDistance << " state=" << State << endl;
-
-    if (LeftDistance == 0) {
-        if (StopNeutral && (State != 0)) {
-            if (stepToNeutral()) {
-                State = 0;
-            }
-        } else {
-            return false;
-        }
-    } else {
-        auto d = Skeleton->S / 2 + State;
-        if (d > abs(LeftDistance)) {
-            d = abs(LeftDistance);
-        }
-        auto newState = State - d;
-        cout << "newState(>)=" << newState << endl;        Leg0.keep();
-        Leg1.X = Skeleton->XM + newState;
-        Leg1.keepY();
-        Leg2.keep();
-        Leg3.X = Skeleton->XN + newState;
-        Leg3.keepY();
-        Leg4.keep();
-        Leg5.X = Skeleton->XN + newState;
-        Leg5.keepY();
-
-        bool movement = false;
-        bool stateAchieved = step(movement);
-/*            
-        if (movement) {
-            Skeleton->Leg0.X = Skeleton->RE * cos(Skeleton->AN + newState) - Skeleton->FW / 2;
-            Skeleton->Leg0.Y = Skeleton->RE * sin(Skeleton->AN + newState) - Skeleton->FH / 2;
-            Skeleton->Leg2.X = Skeleton->RE * cos(Skeleton->AN - newState) - Skeleton->FW / 2;
-            Skeleton->Leg2.Y = -(Skeleton->RE * sin(Skeleton->AN - newState) - Skeleton->FH / 2);
-            Skeleton->Leg4.X = Skeleton->RM * cos(-newState) - Skeleton->FW / 2;
-            Skeleton->Leg4.Y = Skeleton->RM * sin(-newState);
-        }
-*/
-        if (stateAchieved) {
-            State = newState;
-            LeftDistance -= d;
-        }
-
-        return stateAchieved;
-
-        /*
-        if (State >= 0) {
-            auto d = Skeleton->S / 2 + State;
-            if (d > abs(LeftDistance)) {
-                d = abs(LeftDistance);
-            }
-            auto newState = State - d;
-            cout << "newState(>)=" << newState << endl;
-            if (LeftDistance > 0) {
-                if (groundedGroup1(newState)) {
-                    State = newState;
-                    LeftDistance -= d;
-                }
-            } else {
-                if (groundedGroup2(newState)) {
-                    State = newState;
-                    LeftDistance -= -d;
-                }
-            }
-        } else {
-            auto d = Skeleton->S / 2 - State;
-            if (d > abs(LeftDistance)) {
-                d = abs(LeftDistance);
-            }
-            auto newState = State + d;
-            cout << "newState(<)=" << newState << endl;
-            if (LeftDistance > 0) {
-                if (groundedGroup2(newState)) {
-                    State = newState;
-                    LeftDistance -= d;
-                }
-            } else {
-                if (groundedGroup1(newState)) {
-                    State = newState;
-                    LeftDistance -= -d;
-                }
-            }
-        }*/
-    }
-    return true;
-}
-
 void TMoveForwardModel::toNeutral(ICompletionListener* complete) {
     LeftDistance = 0;
     Complete = complete;
@@ -643,6 +558,93 @@ void TMoveForwardModel::moveForward(double distance, ICompletionListener* comple
     move();
 }
 
+bool TMoveDirModel::groundedGroup1(double newState) {
+    Leg0.keep();
+    Leg1.X = Skeleton->XM - newState * sin(Dir);
+    Leg1.Y = -newState * cos(Dir);
+    Leg2.keep();
+    Leg3.X = Skeleton->XN - newState * sin(Dir);
+    Leg3.Y = Skeleton->Y - newState * cos(Dir);
+    Leg4.keep();
+    Leg5.X = Skeleton->XN - newState * sin(Dir);
+    Leg5.Y = -Skeleton->Y - newState * cos(Dir);
+
+    bool movement = false;
+    bool stateAchieved = step(movement);
+            
+    if (movement) {
+        Skeleton->Leg0.X = Skeleton->XN + newState * sin(Dir);
+        Skeleton->Leg0.Y = Skeleton->Y + newState * cos(Dir);
+        Skeleton->Leg2.X = Skeleton->XN + newState * sin(Dir);
+        Skeleton->Leg2.Y = -Skeleton->Y + newState * cos(Dir);
+        Skeleton->Leg4.X = Skeleton->XM + newState * sin(Dir);
+        Skeleton->Leg4.Y = newState * cos(Dir);
+    }
+    return stateAchieved;
+}
+
+bool TMoveDirModel::groundedGroup2(double newState) {
+    Leg0.X = Skeleton->XN + newState * sin(Dir);
+    Leg0.Y = Skeleton->Y + newState * cos(Dir);
+    Leg1.keep();
+    Leg2.X = Skeleton->XN + newState * sin(Dir);
+    Leg2.Y = -Skeleton->Y + newState * cos(Dir);
+    Leg3.keep();
+    Leg4.X = Skeleton->XM + newState * sin(Dir);
+    Leg4.Y = newState * cos(Dir);
+    Leg5.keep();
+
+    bool movement = false;
+    bool stateAchieved = step(movement);
+            
+    if (movement) {
+        Skeleton->Leg1.X = Skeleton->XM - newState * sin(Dir);
+        Skeleton->Leg1.Y = -newState * cos(Dir);
+        Skeleton->Leg3.X = Skeleton->XN - newState * sin(Dir);
+        Skeleton->Leg3.Y = Skeleton->Y - newState * cos(Dir);
+        Skeleton->Leg5.X = Skeleton->XN - newState * sin(Dir);
+        Skeleton->Leg5.Y = -Skeleton->Y - newState * cos(Dir);
+    }
+    return stateAchieved;
+}
+
+bool TMoveDirModel::setTargetsForLegs() {
+
+    cout << "dir: distance=" << LeftDistance << " state=" << State << endl;
+
+    if (LeftDistance == 0) {
+        if (StopNeutral && (State != 0)) {
+            if (stepToNeutral()) {
+                State = 0;
+            }
+        } else {
+            return false;
+        }
+    } else {
+        auto d = Skeleton->S / 2 + abs(State);
+        if (d > LeftDistance) {
+            d = LeftDistance;
+        }
+        if (State >= 0) {
+            auto newState = State - d;
+            cout << "newState(>)=" << newState << endl;
+            if (groundedGroup1(newState)) {
+                State = newState;
+                LeftDistance -= d;
+            }
+        } else {
+            auto newState = State + d;
+            cout << "newState(<)=" << newState << endl;
+            if (groundedGroup2(newState)) {
+                State = newState;
+                LeftDistance -= d;
+            }
+        }
+    }
+    return true;
+}
+
+
 
 void TMoveDirModel::toNeutral(ICompletionListener* complete) {
     LeftDistance = 0;
@@ -655,6 +657,7 @@ void TMoveDirModel::moveDir(double distance, ICompletionListener* complete) {
     LeftDistance = distance;
     Complete = complete;
     StopNeutral = false;
+    Dir = 90 * M_PI / 180;
     move();
 }
 
@@ -727,7 +730,7 @@ bool TTurnModel::setTargetsForLegs() {
         }
     } else {
         if (State >= 0) {
-            auto d = Skeleton->Tmax + State;
+            auto d = Skeleton->Tmax / 2 + State;
             if (d > abs(LeftAngle)) {
                 d = abs(LeftAngle);
             }
@@ -745,7 +748,7 @@ bool TTurnModel::setTargetsForLegs() {
                 }
             }
         } else {
-            auto d = Skeleton->Tmax - State;
+            auto d = Skeleton->Tmax / 2 - State;
             if (d > abs(LeftAngle)) {
                 d = abs(LeftAngle);
             }
@@ -849,6 +852,7 @@ void TMove2::turn(double angle) {
 void TMove2::setSpeed(double speed) {
     MoveDownModel.Speed = speed;
     MoveForwardModel.Speed = speed;
+    MoveDirModel.Speed = speed;
     TurnModel.Speed = speed;
 }
 
