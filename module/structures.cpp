@@ -126,29 +126,43 @@ void TSkeleton2::complete(IProcess* src){
 
 void TSkeleton2::countInitParams() {
     
-    // Alpha
-    double A2 = 25 * M_PI / 180;
+    // H for top position of a leg
+    // Hdown = 20
+
+    // min D
+    // D0 = 60
     
-    // Neutral X for edge legs
-    XN = (D0 + Leg0.C) * cos(A2);
+    // Walking H
+    // base (walking) H (60..199)
+    // H0 = sqrt(Leg0.B * Leg0.B - D0*D0) - Leg0.A;
 
+    // Alpha
+    // double A2 = 25 * M_PI / 180;
+    
     // max distance leg can reach for H0
-    double D = Leg0.C + sqrt((Leg0.A + Leg0.B) * (Leg0.A + Leg0.B) - H0 * H0);
+    double D = Leg0.C + sqrt((Leg0.A + Leg0.B) * (Leg0.A + Leg0.B) - H0 * H0) * 0.7;
 
+    // new: step size
+    S = D - D0;
+
+    // Neutral X for edge legs
+    // XN = D0 * cos(A2);
     // max Y for edge leg
-    double Ymax = sqrt(D*D - XN*XN);
-
+    //double Ymax = sqrt(D*D - XN*XN);
     // min Y for edge leg
-    double Ymin = XN * tan(A2);
-
+    //double Ymin = XN * tan(A2);
     // step size (max for edge leg, should be less or equal middle: 2 * D * sin(A2))
-    S = Ymax - Ymin - 100;
-
+    //S = Ymax - Ymin - 100;
     // X for middle
-    XM = S / (2 * tan(A2));
-
+    //XM = S / (2 * tan(A2));
     // Neutral Y for edge
-    Y = (Ymax + Ymin) / 2;
+    //Y = (Ymax + Ymin) / 2;
+
+    S = D - D0;
+    XM = S / 2 + D0;
+    double A2 = asin(S / XM / 2);
+    XN = XM * cos(A2 * 2);
+    Y = XM * sin(A2 * 2);
 
     // X for down position
     XD = Leg0.C + sqrt(Leg0.B * Leg0.B - Leg0.A * Leg0.A);
@@ -166,7 +180,7 @@ void TSkeleton2::countInitParams() {
     // Angle from center to tip of edge leg in neutral
     AN = atan2(CY, CX);
 
-    cout << "H0=" << H0 << " S=" << S << " XN=" << XN << " XM=" << XM << " Y=" << Y
+    cout << "H0=" << H0 << "D =" << D << " S=" << S << " XN=" << XN << " XM=" << XM << " Y=" << Y
          << " RE=" << RE << " RM=" << RM << " AN=" << (AN * 180 / M_PI) << endl;
 }
 
@@ -319,13 +333,13 @@ bool IStepModel::step(bool& movement) {
 bool IStepModel::stepToNeutral() {
     Leg0.X = Skeleton->XN;
     Leg0.Y = Skeleton->Y;
-    Leg1.X = Skeleton->XN;
+    Leg1.X = Skeleton->XM;
     Leg1.Y = 0;
     Leg2.X = Skeleton->XN;
     Leg2.Y = -Skeleton->Y;
     Leg3.X = Skeleton->XN;
     Leg3.Y = Skeleton->Y;
-    Leg4.X = Skeleton->XN;
+    Leg4.X = Skeleton->XM;
     Leg4.Y = 0;
     Leg5.X = Skeleton->XN;
     Leg5.Y = -Skeleton->Y;
@@ -526,6 +540,95 @@ bool TMoveForwardModel::setTargetsForLegs() {
     return true;
 }
 
+bool TMoveDirModel::setTargetsForLegs() {
+
+    cout << "dir: distance=" << LeftDistance << " state=" << State << endl;
+
+    if (LeftDistance == 0) {
+        if (StopNeutral && (State != 0)) {
+            if (stepToNeutral()) {
+                State = 0;
+            }
+        } else {
+            return false;
+        }
+    } else {
+        auto d = Skeleton->S / 2 + State;
+        if (d > abs(LeftDistance)) {
+            d = abs(LeftDistance);
+        }
+        auto newState = State - d;
+        cout << "newState(>)=" << newState << endl;        Leg0.keep();
+        Leg1.X = Skeleton->XM + newState;
+        Leg1.keepY();
+        Leg2.keep();
+        Leg3.X = Skeleton->XN + newState;
+        Leg3.keepY();
+        Leg4.keep();
+        Leg5.X = Skeleton->XN + newState;
+        Leg5.keepY();
+
+        bool movement = false;
+        bool stateAchieved = step(movement);
+/*            
+        if (movement) {
+            Skeleton->Leg0.X = Skeleton->RE * cos(Skeleton->AN + newState) - Skeleton->FW / 2;
+            Skeleton->Leg0.Y = Skeleton->RE * sin(Skeleton->AN + newState) - Skeleton->FH / 2;
+            Skeleton->Leg2.X = Skeleton->RE * cos(Skeleton->AN - newState) - Skeleton->FW / 2;
+            Skeleton->Leg2.Y = -(Skeleton->RE * sin(Skeleton->AN - newState) - Skeleton->FH / 2);
+            Skeleton->Leg4.X = Skeleton->RM * cos(-newState) - Skeleton->FW / 2;
+            Skeleton->Leg4.Y = Skeleton->RM * sin(-newState);
+        }
+*/
+        if (stateAchieved) {
+            State = newState;
+            LeftDistance -= d;
+        }
+
+        return stateAchieved;
+
+        /*
+        if (State >= 0) {
+            auto d = Skeleton->S / 2 + State;
+            if (d > abs(LeftDistance)) {
+                d = abs(LeftDistance);
+            }
+            auto newState = State - d;
+            cout << "newState(>)=" << newState << endl;
+            if (LeftDistance > 0) {
+                if (groundedGroup1(newState)) {
+                    State = newState;
+                    LeftDistance -= d;
+                }
+            } else {
+                if (groundedGroup2(newState)) {
+                    State = newState;
+                    LeftDistance -= -d;
+                }
+            }
+        } else {
+            auto d = Skeleton->S / 2 - State;
+            if (d > abs(LeftDistance)) {
+                d = abs(LeftDistance);
+            }
+            auto newState = State + d;
+            cout << "newState(<)=" << newState << endl;
+            if (LeftDistance > 0) {
+                if (groundedGroup2(newState)) {
+                    State = newState;
+                    LeftDistance -= d;
+                }
+            } else {
+                if (groundedGroup1(newState)) {
+                    State = newState;
+                    LeftDistance -= -d;
+                }
+            }
+        }*/
+    }
+    return true;
+}
+
 void TMoveForwardModel::toNeutral(ICompletionListener* complete) {
     LeftDistance = 0;
     Complete = complete;
@@ -534,6 +637,21 @@ void TMoveForwardModel::toNeutral(ICompletionListener* complete) {
 }
 
 void TMoveForwardModel::moveForward(double distance, ICompletionListener* complete) {
+    LeftDistance = distance;
+    Complete = complete;
+    StopNeutral = false;
+    move();
+}
+
+
+void TMoveDirModel::toNeutral(ICompletionListener* complete) {
+    LeftDistance = 0;
+    Complete = complete;
+    StopNeutral = true;
+    move();
+}
+
+void TMoveDirModel::moveDir(double distance, ICompletionListener* complete) {
     LeftDistance = distance;
     Complete = complete;
     StopNeutral = false;
@@ -678,6 +796,10 @@ void TMove2::move() {
         CurrentModel = &TurnModel;
         TurnModel.turnAngle(Angle);
         break;
+    case CMD_DIR:
+        CurrentModel = &MoveDirModel;
+        MoveDirModel.moveDir(Distance);
+        break;
     }
 }
 
@@ -728,5 +850,15 @@ void TMove2::setSpeed(double speed) {
     MoveDownModel.Speed = speed;
     MoveForwardModel.Speed = speed;
     TurnModel.Speed = speed;
+}
+
+void TMove2::moveDir(double distance) {
+    Command = CMD_DIR;
+    Distance = distance;
+    if (CurrentModel == &MoveDirModel) {
+        move();
+    } else {
+        CurrentModel->toNeutral(this);
+    }
 }
 

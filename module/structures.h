@@ -91,7 +91,7 @@ struct TSkeleton2 : public ICompletionListener, IProcess {
      static constexpr double Hdown = 20;
 
      // min D
-     static constexpr double D0 = 60;
+     static constexpr double D0 =  + TLeg::C + 60;
 
      // max turn in degrees
      static constexpr double Tmax = 15 * M_PI / 180;
@@ -333,6 +333,25 @@ struct TMoveForwardModel : public IStepModel {
      void moveForward(double distance, ICompletionListener* complete = NULL);
 };
 
+struct TMoveDirModel : public IStepModel {
+
+     double State;
+     double LeftDistance;
+     bool StopNeutral;
+
+     TMoveDirModel(TSkeleton2* skeleton) :
+          IStepModel(skeleton, 2),
+          State(0),
+          LeftDistance(0),
+          StopNeutral(true) {}
+
+     //bool groundedGroup1(double newState);
+     //bool groundedGroup2(double newState);
+     bool setTargetsForLegs();
+     void toNeutral(ICompletionListener* complete = NULL);
+     void moveDir(double distance, ICompletionListener* complete = NULL);
+};
+
 struct TTurnModel : public IStepModel {
      double State;
      double LeftAngle;
@@ -356,7 +375,8 @@ struct TMove2 : public ICompletionListener {
      enum ECommand {
           CMD_DOWN,
           CMD_FORWARD,
-          CMD_TURN
+          CMD_TURN,
+          CMD_DIR
      };
      
      TMoveDownModel MoveDownModel;
@@ -366,6 +386,8 @@ struct TMove2 : public ICompletionListener {
      TTurnModel TurnModel;
      double Angle;
 
+     TMoveDirModel MoveDirModel;
+
      ECommand Command;
 
      IMoveModel* CurrentModel;
@@ -373,7 +395,8 @@ struct TMove2 : public ICompletionListener {
      TMove2(TSkeleton2* skeleton) :
           MoveDownModel(skeleton),
           MoveForwardModel(skeleton),
-          TurnModel(skeleton)  {}
+          TurnModel(skeleton),
+          MoveDirModel(skeleton)  {}
 
      void move();
      void complete(IProcess* src);
@@ -384,6 +407,7 @@ struct TMove2 : public ICompletionListener {
      void toDown();
      void moveForward(double distance);
      void turn(double angle);
+     void moveDir(double distance);
 
      virtual ~TMove2() {}
 };

@@ -383,6 +383,15 @@ void test5() {
             continue;
         }
 
+        if (cmd == "dir") {
+            double distance;
+            cout << "distance:";
+            cin >> distance;
+            cout << "---------------------------------------------------" << endl;
+            move.moveDir(distance);
+            continue;
+        }
+
         if (cmd == "turn") {
             double angle;
             cout << "angle:";
@@ -418,6 +427,98 @@ void test6() {
     cout << "Exited" << endl;
 }
 
+void test7() {
+    TSkeleton2 skeleton("spider",
+    // 0
+                        14, 1520, 650,
+                        15, 1400, 670,
+                        18, 1460, -670,
+    
+    // 1
+                        2, 1470, -675,
+                        3, 1370, -650,
+                        4, 1500, -660,
+    
+    // 2
+                        22, 1440, -670,
+                        27, 1430, -660,
+                        17, 1570, -660,
+    
+    // 3
+                        0, 1410, 650,
+                        5, 1540, 650,
+                        6, 1520, 650,
+    
+    // 4
+                        13, 1550, 670,
+                        19, 1550, 650,
+                        26, 1460, 650,
+
+    // 5
+                        16, 1560, -650,
+                        20, 1390, -660,
+                        21, 1420, 650);
+
+    
+    TLeg* legs[] = {&skeleton.Leg0, &skeleton.Leg1, &skeleton.Leg2, &skeleton.Leg3, &skeleton.Leg4, &skeleton.Leg5, };
+    
+    int leg = 0;
+    string op = "top";
+
+    while(true) {
+        string cmd;
+        cout << "(" << leg << ")" << op << ":";
+        cin >> cmd;
+        if (cmd.length() == 0) {
+            continue;
+        }
+
+        if (cmd == "exit") {
+            break;
+        }
+
+        if (cmd == "leg") {
+            cout << "leg:";
+            cin >> leg;
+            continue;
+        }
+
+        if (cmd == "top") {
+            op = "top";
+            continue;
+        }
+
+        if (cmd == "middle") {
+            op = "middle";
+            continue;
+        }
+
+        if (cmd == "bottom") {
+            op = "bottom";
+            continue;
+        }
+
+        const char* begin = cmd.c_str();
+        char* end = (char*)begin;
+        double v = strtod(begin, &end);
+        if (begin != end) {
+            if (op == "top") {
+                legs[leg]->TopServo.setAngle(v);
+                continue;
+            }
+            if (op == "middle") {
+                legs[leg]->MiddleServo.setAngle(v);
+                continue;
+            }
+            if (op == "bottom") {
+                legs[leg]->BottomServo.setAngle(v);
+                continue;
+            }
+        }
+    };
+
+}
+
 int main(int argc, char *argv[]) {
 	
     cout << "start" << endl;
@@ -426,6 +527,7 @@ int main(int argc, char *argv[]) {
 	//test1();
     //test2();
     test5();
+    //test7();
     cout << "stop" << endl;
 
     stopMechanics();
