@@ -563,10 +563,10 @@ bool TMoveDirModel::groundedGroup1(double newState) {
     Leg1.X = Skeleton->XM - newState * sin(Dir);
     Leg1.Y = -newState * cos(Dir);
     Leg2.keep();
-    Leg3.X = Skeleton->XN - newState * sin(Dir);
+    Leg3.X = Skeleton->XN + newState * sin(Dir);
     Leg3.Y = Skeleton->Y - newState * cos(Dir);
     Leg4.keep();
-    Leg5.X = Skeleton->XN - newState * sin(Dir);
+    Leg5.X = Skeleton->XN + newState * sin(Dir);
     Leg5.Y = -Skeleton->Y - newState * cos(Dir);
 
     bool movement = false;
@@ -577,7 +577,7 @@ bool TMoveDirModel::groundedGroup1(double newState) {
         Skeleton->Leg0.Y = Skeleton->Y + newState * cos(Dir);
         Skeleton->Leg2.X = Skeleton->XN + newState * sin(Dir);
         Skeleton->Leg2.Y = -Skeleton->Y + newState * cos(Dir);
-        Skeleton->Leg4.X = Skeleton->XM + newState * sin(Dir);
+        Skeleton->Leg4.X = Skeleton->XM - newState * sin(Dir);
         Skeleton->Leg4.Y = newState * cos(Dir);
     }
     return stateAchieved;
@@ -590,7 +590,7 @@ bool TMoveDirModel::groundedGroup2(double newState) {
     Leg2.X = Skeleton->XN + newState * sin(Dir);
     Leg2.Y = -Skeleton->Y + newState * cos(Dir);
     Leg3.keep();
-    Leg4.X = Skeleton->XM + newState * sin(Dir);
+    Leg4.X = Skeleton->XM - newState * sin(Dir);
     Leg4.Y = newState * cos(Dir);
     Leg5.keep();
 
@@ -600,9 +600,9 @@ bool TMoveDirModel::groundedGroup2(double newState) {
     if (movement) {
         Skeleton->Leg1.X = Skeleton->XM - newState * sin(Dir);
         Skeleton->Leg1.Y = -newState * cos(Dir);
-        Skeleton->Leg3.X = Skeleton->XN - newState * sin(Dir);
+        Skeleton->Leg3.X = Skeleton->XN + newState * sin(Dir);
         Skeleton->Leg3.Y = Skeleton->Y - newState * cos(Dir);
-        Skeleton->Leg5.X = Skeleton->XN - newState * sin(Dir);
+        Skeleton->Leg5.X = Skeleton->XN + newState * sin(Dir);
         Skeleton->Leg5.Y = -Skeleton->Y - newState * cos(Dir);
     }
     return stateAchieved;
@@ -653,11 +653,11 @@ void TMoveDirModel::toNeutral(ICompletionListener* complete) {
     move();
 }
 
-void TMoveDirModel::moveDir(double distance, ICompletionListener* complete) {
+void TMoveDirModel::moveDir(double distance, double direction, ICompletionListener* complete) {
     LeftDistance = distance;
     Complete = complete;
     StopNeutral = false;
-    Dir = 90 * M_PI / 180;
+    Dir = direction;
     move();
 }
 

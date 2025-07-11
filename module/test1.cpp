@@ -385,10 +385,13 @@ void test5() {
 
         if (cmd == "dir") {
             double distance;
+            double direction;
+            cout << "direction:";
+            cin >> direction;
             cout << "distance:";
             cin >> distance;
             cout << "---------------------------------------------------" << endl;
-            move.moveDir(distance);
+            move.moveDir(distance, direction * M_PI / 180);
             continue;
         }
 

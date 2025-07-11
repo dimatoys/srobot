@@ -351,7 +351,7 @@ struct TMoveDirModel : public IStepModel {
      bool groundedGroup2(double newState);
      bool setTargetsForLegs();
      void toNeutral(ICompletionListener* complete = NULL);
-     void moveDir(double distance, ICompletionListener* complete = NULL);
+     void moveDir(double distance, double direction, ICompletionListener* complete = NULL);
 };
 
 struct TTurnModel : public IStepModel {
