@@ -43,6 +43,15 @@ function makeRobotCmdValueButton(table, caption, cmd, initValue) {
     $("<tr/>").append($("<td/>").append(vi).append(btn)).appendTo(table)
 }
 
+function makeRobotCmdValueButton2(table, caption, cmd, initValue1, initValue2) {
+    var vi1 = $("<input/>").attr("type", "textfield").attr("value", initValue1)
+    var vi2 = $("<input/>").attr("type", "textfield").attr("value", initValue2)
+    btn = $("<input/>").attr("type", "button").attr("value", caption).click(function(){
+        robotCmd(writeStatus, cmd, vi1.val() + "," + vi2.val())
+    })
+    $("<tr/>").append($("<td/>").append(vi1).append(vi2).append(btn)).appendTo(table)
+}
+
 
 $(document).ready(function() {
 
@@ -52,6 +61,7 @@ $(document).ready(function() {
     makeRobotCmdButton(commands, "NEUTRAL", "neutral")
     makeRobotCmdButton(commands, "DOWN", "down")
     makeRobotCmdValueButton(commands, "WALK", "walk", "400")
+    makeRobotCmdValueButton2(commands, "DIR", "dir", "400", "0")
     makeRobotCmdValueButton(commands, "TURN", "turn", "45")
     makeRobotCmdValueButton(commands, "SPEED", "speed", "1")
 

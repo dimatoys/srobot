@@ -40,28 +40,26 @@ struct TLeg  : public ICompletionListener, IProcess, TPoint2D {
     TServo MiddleServo;
     TServo TopServo;
 
-    // location of top motor axis
-    double GX;  // horizontal (looking from top) coordonate of top servo axis
-    double GY;  // vertical (looking  from top) coordonate of top servo axis
-
     double As; // angle of bottom servo
     double Bs; // angle of middle servo
     double Cs; // angle of top servo
 
     double H; // hight
 
+    // neutral position
+    double XN;
+    double YN;
+
     ICompletionListener* Complete;
 
-    TLeg(std::string id, double gx, double gy,
+    TLeg(std::string id, 
             int pinBottom, int zeroBottom, double rangeBottom,
             int pinMiddle, int zeroMiddle, double rangeMiddle,
             int pinTop, int zeroTop, double rangeTop) :
         IProcess(id),
         BottomServo(id + "-bottom", pinBottom, zeroBottom, rangeBottom),
         MiddleServo(id + "-middle", pinMiddle, zeroMiddle, rangeMiddle),
-        TopServo(id + "-top", pinTop, zeroTop, rangeTop),
-        GX(gx),
-        GY(gy) {
+        TopServo(id + "-top", pinTop, zeroTop, rangeTop) {
 
         Complete = NULL;
 
@@ -79,6 +77,11 @@ struct TLeg  : public ICompletionListener, IProcess, TPoint2D {
     void setAngles(double speed, ICompletionListener* complete);
     void setAngles(double speed, int maxDistance, ICompletionListener* complete);
     int getMaxTargetDistance();
+
+    void setMove(double dx, double dy) {
+          X = XN + dx;
+          Y = YN + dy;
+    }
 };
 
 struct TSkeleton2 : public ICompletionListener, IProcess {
@@ -163,32 +166,32 @@ struct TSkeleton2 : public ICompletionListener, IProcess {
             
             IProcess(id),
             
-            Leg0(id + "-L0", 0, 0,
+            Leg0(id + "-L0",
                  pinBottom0, zeroBottom0, rangeBottom0,
                  pinMiddle0, zeroMiddle0, rangeMiddle0,
                  pinTop0,    zeroTop0,    rangeTop0),
             
-            Leg1(id + "-L1", 0, 0,
+            Leg1(id + "-L1", 
                  pinBottom1, zeroBottom1, rangeBottom1,
                  pinMiddle1, zeroMiddle1, rangeMiddle1,
                  pinTop1,    zeroTop1,    rangeTop1),
             
-            Leg2(id + "-L2", 0, 0,
+            Leg2(id + "-L2",
                  pinBottom2, zeroBottom2, rangeBottom2,
                  pinMiddle2, zeroMiddle2, rangeMiddle2,
                  pinTop2,    zeroTop2,    rangeTop2),
             
-            Leg3(id + "-L3", 0, 0,
+            Leg3(id + "-L3",
                  pinBottom3, zeroBottom3, rangeBottom3,
                  pinMiddle3, zeroMiddle3, rangeMiddle3,
                  pinTop3,    zeroTop3,    rangeTop3),
             
-            Leg4(id + "-L4", 0, 0,
+            Leg4(id + "-L4",
                  pinBottom4, zeroBottom4, rangeBottom4,
                  pinMiddle4, zeroMiddle4, rangeMiddle4,
                  pinTop4,    zeroTop4,    rangeTop4),
             
-            Leg5(id + "-L5", 0, 0,
+            Leg5(id + "-L5",
                  pinBottom5, zeroBottom5, rangeBottom5,
                  pinMiddle5, zeroMiddle5, rangeMiddle5,
                  pinTop5,    zeroTop5,    rangeTop5),
@@ -259,6 +262,11 @@ struct IStepModel : public IMoveModel {
 
           void keepY() {
                Y = Leg->Y;
+          }
+
+          void setStep(double dx, double dy) {
+               X = Leg->XN + dx;
+               Y = Leg->YN + dy;
           }
 
      };
@@ -340,6 +348,7 @@ struct TMoveDirModel : public IStepModel {
      bool StopNeutral;
      
      double Dir;
+     bool ResetState;
 
      TMoveDirModel(TSkeleton2* skeleton) :
           IStepModel(skeleton, 2),
@@ -409,7 +418,7 @@ struct TMove2 : public ICompletionListener {
      void toDown();
      void moveForward(double distance);
      void turn(double angle);
-     void moveDir(double distance);
+     void moveDir(double distance, double direction);
 
      virtual ~TMove2() {}
 };

@@ -1,4 +1,5 @@
-import sys
+import os
+import signal
 
 from flask import Flask
 from flask import Response
@@ -32,9 +33,10 @@ def shutdown():
     robotShutdown()
     app.logger.debug('SHUTDOWN OK')
     shutdown_server = request.environ.get('werkzeug.server.shutdown')
-    if shutdown_server is None:
-        raise RuntimeError('Not running with the Werkzeug Server')
-    shutdown_server()
+    if shutdown_server is not None:
+        shutdown_server()
+    else:
+        os.kill(os.getpid(), signal.SIGINT)
     return Response("{'status': 'ok'}", content_type='text/plain; charset=utf-8')
 
 @app.route("/command/<cmd>/<arg>")

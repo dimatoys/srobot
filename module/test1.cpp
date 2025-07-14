@@ -188,32 +188,32 @@ void test2() {
 */
     TLeg** legs = new TLeg*[6];
 
-    legs[0] = new TLeg( "leg0", 0,0,
+    legs[0] = new TLeg( "leg0",
                         14, 1520, 650,
                         15, 1400, 670,
                         18, 1460, -670);
     
-    legs[1] = new TLeg( "leg1", 0,0,
+    legs[1] = new TLeg( "leg1",
                         2, 1470, -675,
                         3, 1370, -650,
                         4, 1500, -660);
     
-    legs[2] = new TLeg( "leg2", 0,0,
+    legs[2] = new TLeg( "leg2",
                         22, 1440, -670,
                         27, 1430, -660,
                         17, 1570, -660);
     
-    legs[3] = new TLeg( "leg3", 0,0,
+    legs[3] = new TLeg( "leg3",
                         0, 1410, 650,
                         5, 1540, 650,
                         6, 1520, 650);
     
-    legs[4] = new TLeg( "leg4", 0,0,
+    legs[4] = new TLeg( "leg4",
                         13, 1550, 670,
                         19, 1550, 650,
                         26, 1460, 650);
 
-    legs[5] = new TLeg( "leg5", 0,0,
+    legs[5] = new TLeg( "leg5",
                         16, 1560, -650,
                         20, 1390, -660,
                         21, 1420, 650);
@@ -390,6 +390,28 @@ void test5() {
             cin >> direction;
             cout << "distance:";
             cin >> distance;
+            /*
+            string arg;
+            cout << "distance,direction:";
+            cin >> arg;
+
+            const char* carg = arg.c_str();
+
+            int comma = -1;
+            int end = 0;
+            while(carg[++end] != 0) {
+                if (carg[end] == ',') {
+                    comma = end;
+                }
+            }
+
+            if (comma >= 0) {
+                string dist(carg, carg + comma);
+                string dir(carg + comma + 1, end);
+                cout << "dist=" << dist << " dir=" << dir << endl;
+            }
+            */
+
             cout << "---------------------------------------------------" << endl;
             move.moveDir(distance, direction * M_PI / 180);
             continue;

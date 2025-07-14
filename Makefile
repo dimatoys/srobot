@@ -14,7 +14,7 @@ else
 PIGPIO_LIB=
 endif
 
-CPPFLAGS=-g -std=c++17 -Wall  -I/home/pi/git/libcamera-apps -I/usr/include/libcamera -I/usr/local/include -fPIC -DARCH=$(OBJ)
+CPPFLAGS=-g -std=c++17 -Wall  -I/usr/include -I/usr/local/include -fPIC -DARCH=$(OBJ)
 LDFLAGS=-L/usr/local/lib/aarch64-linux-gnu -L/usr/local/lib/static -lstdc++ -fPIC
 
 $(OBJ)/%.o: $(OBJ)/%.c
@@ -28,6 +28,9 @@ test1: $(OBJ)/test1.o $(OBJ)/mechanics.o $(OBJ)/structures.o $(OBJ)/module.o
 
 test2: $(OBJ)/test2.o
 	$(CC) -o $@ $^ $(LDFLAGS) -lrt -lm
+
+cameratest: $(OBJ)/cameratest.o
+	$(CC) -o $@ $^ $(LDFLAGS) -lOrbbecSDK -ljpeg
 
 module.so: $(OBJ)/module.o  $(OBJ)/mechanics.o $(OBJ)/structures.o
 	$(CC) -shared -o $@ $^ $(LDFLAG) $(PIGPIO_LIB) -lrt -lm -lpthread
@@ -50,6 +53,15 @@ runtest1:
 	rsync -rci * $(REMOTE_HOST):$(REMOTE_PATH)
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; make test1"
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; sudo ./test1"
+
+runcamera:
+	rsync -rci * $(REMOTE_HOST):$(REMOTE_PATH)
+	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; make cameratest"
+	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; export LD_LIBRARY_PATH=/usr/local/lib ; ./cameratest"
+
+loadjpeg:
+	#rsync $(REMOTE_HOST):$(REMOTE_PATH)/depths1.jpg .
+	rsync $(REMOTE_HOST):$(REMOTE_PATH)/color1.jpg .
 
 killtest1:
 	#rsh $(REMOTE_HOST) "sudo kill `ps -C test1 -o pid=`"

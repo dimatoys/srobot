@@ -76,6 +76,26 @@ int run_cmd(TModuleObject* module, const char* cmd, const char* arg) {
                 return 0;
             }
 
+            if (command == "dir") {
+                int comma = -1;
+                int end = 0;
+                while(arg[++end] != 0) {
+                    if (arg[end] == ',') {
+                        comma = end;
+                    }
+                }
+
+                if (comma >= 0) {
+                    string distance(arg, arg + comma);
+                    string direction(arg + comma + 1, end);
+                    move->moveDir(stod(distance), stod(direction));
+                    return 0;
+                } else {
+                    return -1;
+                }
+
+            }
+
             if (command == "speed") {
                 move->setSpeed(stod(arg));
                 return 0;
