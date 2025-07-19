@@ -6,6 +6,8 @@
 #include "libobsensor/ObSensor.hpp"
 #include "libobsensor/hpp/Error.hpp"
 
+#include "camera.h"
+
 /*
 
 Astra mini S, PID: 0x0407, SN/ID:
@@ -106,25 +108,82 @@ void test2() try {
     // Create a pipeline with default device
     ob::Pipeline pipe;
 
+/*
+IR profiles:3
+0 IR:320 x 240 format=10         < Y10 format, 10-bit per pixel, single-channel(SDK will unpack into Y16 by default)
+1 IR:640 x 480 format=10
+2 IR:1280 x 1024 format=10
+Color profiles:6
+0 Color:320 x 240 format=2        < UYVY format
+1 Color:640 x 480 format=2
+2 Color:1280 x 960 format=2
+3 Color:320 x 240 format=22       < RGB format (actual RGB888)
+4 Color:640 x 480 format=22
+5 Color:1280 x 960 format=22
+Depth profiles:4
+0 Depth:160 x 120 format=11      < Y11 format, 11-bit per pixel, single-channel (SDK will unpack into Y16 by default)
+1 Depth:320 x 240 format=11
+2 Depth:640 x 480 format=11
+3 Depth:1280 x 1024 format=11
+*/
+    auto ir_profiles = pipe.getStreamProfileList(OB_SENSOR_IR);
+    auto cnt = ir_profiles->count();
+    std::cout << "IR profiles:" << cnt << std::endl;
+    for (uint32_t j = 0 ; j < cnt; ++j) {
+        auto profile = ir_profiles->getProfile(j);
+        auto ir = profile->as<ob::VideoStreamProfile>();
+        std::cout << "IR:" << ir->width() << " x " << ir->height() << " format=" << ir->format() << std::endl;
+    }
+
+    auto color_profiles = pipe.getStreamProfileList(OB_SENSOR_COLOR);
+    cnt = color_profiles->count();
+    std::cout << "Color profiles:" << cnt << std::endl;
+    for (uint32_t j = 0 ; j < cnt; ++j) {
+        auto profile = color_profiles->getProfile(j);
+        auto ir = profile->as<ob::VideoStreamProfile>();
+        std::cout << "Color:" << ir->width() << " x " << ir->height() << " format=" << ir->format() << std::endl;
+    }
+
+    auto depth_profiles = pipe.getStreamProfileList(OB_SENSOR_DEPTH);
+    cnt = depth_profiles->count();
+    std::cout << "Depth profiles:" << cnt << std::endl;
+    for (uint32_t j = 0 ; j < cnt; ++j) {
+        auto profile = depth_profiles->getProfile(j);
+        auto ir = profile->as<ob::VideoStreamProfile>();
+        std::cout << "Depth:" << ir->width() << " x " << ir->height() << " format=" << ir->format() << std::endl;
+    }
+
+    std::shared_ptr<ob::Config> config2 = std::make_shared<ob::Config>();
+    //config2->enableStream(ir_profiles->getProfile(0));
+    config2->enableStream(depth_profiles->getProfile(3));
+    config2->enableStream(color_profiles->getProfile(5));
+/*
     auto config = pipe.getConfig();
     for (uint32_t j = 0; j < config->getEnabledStreamProfileList()->count(); ++j) {
         auto profile = config->getEnabledStreamProfileList()->getProfile(j);
         auto type = profile->type();
         if (type == OB_STREAM_DEPTH) {
             auto depth = profile->as<ob::VideoStreamProfile>();
-            //OB_FORMAT_Y11        = 11,   /**< Y11 format, 11-bit per pixel, single-channel (SDK will unpack into Y16 by default) */
+            //OB_FORMAT_Y11        = 11,   < Y11 format, 11-bit per pixel, single-channel (SDK will unpack into Y16 by default)
             // 160 x 120
             std::cout << "Depth:" << depth->width() << " x " << depth->height() << " format=" << profile->format() << std::endl;
+            config2->enableStream(depth);
         } else {
             if (type == OB_STREAM_COLOR) {
                 auto color = profile->as<ob::VideoStreamProfile>();
-                // OB_FORMAT_UYVY       = 2,    /**< UYVY format */
+                // OB_FORMAT_UYVY       = 2,    < UYVY format
                 // 320 x 240
                 std::cout << "Color:" << color->width() << " x " << color->height() << " format=" << profile->format() << std::endl;
+                config2->enableStream(color);
+            } else {
+                if (type == OB_STREAM_IR) {
+                    auto ir = profile->as<ob::VideoStreamProfile>();
+                    std::cout << "IR:" << ir->width() << " x " << ir->height() << " format=" << ir->format() << std::endl;
+                }
             }
         }
     }
-    
+*/    
     auto lastTime = std::chrono::high_resolution_clock::now();
     int i = 10;
 
@@ -132,168 +191,14 @@ void test2() try {
         auto now = std::chrono::high_resolution_clock::now();
         auto colorFrame = frameSet->colorFrame();
         auto depthFrame = frameSet->depthFrame();
-        std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(now - lastTime).count() << (colorFrame ? " color" : " -") << (depthFrame ? " depth" : " -") << std::endl;
+        auto irFrame = frameSet->irFrame();
+        std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(now - lastTime).count() << (colorFrame ? " color" : " -") << (depthFrame ? " depth" : " -") << (irFrame ? " ir" : " -") << std::endl;
         lastTime = now;
+        --i;
     };
     
     // Start the pipeline with default config, more info please refer to the `misc/config/OrbbecSDKConfig_v1.0.xml`
-    pipe.start(nullptr, callback);
-
-    while(i > 0) {}
-
-    // Stop the Pipeline, no frame data will be generated
-    pipe.stop();
-}
-catch(ob::Error &e) {
-    std::cerr << "function:" << e.getName() << "\nargs:" << e.getArgs() << "\nmessage:" << e.getMessage() << "\ntype:" << e.getExceptionType() << std::endl;
-    exit(EXIT_FAILURE);
-}
-
-int write_jpeg_file(const char *filename,
-                    void *raw_image,
-                    int width,
-                    int height,
-                    int bytes_per_pixel)
-{
-	J_COLOR_SPACE color_space = JCS_RGB;
-
-	struct jpeg_compress_struct cinfo;
-	struct jpeg_error_mgr jerr;
-	
-	/* this is a pointer to one row of image data */
-	JSAMPROW row_pointer[1];
-        //printf("jpeg:%s\n", filename);
-	FILE *outfile = fopen( filename, "wb" );
-	
-	if ( !outfile )
-	{
-		printf("Error opening output jpeg file %s\n!", filename );
-		return -1;
-	}
-	cinfo.err = jpeg_std_error( &jerr );
-	jpeg_create_compress(&cinfo);
-	jpeg_stdio_dest(&cinfo, outfile);
-
-	/* Setting the parameters of the output file here */
-	cinfo.image_width = width;	
-	cinfo.image_height = height;
-	cinfo.input_components = bytes_per_pixel;
-	cinfo.in_color_space = color_space;
-    /* default compression parameters, we shouldn't be worried about these */
-	jpeg_set_defaults( &cinfo );
-	/* Now do the compression .. */
-	jpeg_set_quality(&cinfo, 100, FALSE);
-	jpeg_start_compress( &cinfo, TRUE );
-	/* like reading a file, this time write one row at a time */
-	while( cinfo.next_scanline < cinfo.image_height )
-	{
-		row_pointer[0] = &((unsigned char*)raw_image)[ cinfo.next_scanline * cinfo.image_width *  cinfo.input_components];
-		jpeg_write_scanlines( &cinfo, row_pointer, 1 );
-	}
-	/* similar to read file, clean up after we're done compressing */
-	jpeg_finish_compress( &cinfo );
-	jpeg_destroy_compress( &cinfo );
-	fclose( outfile );
-	/* success code is 1! */
-	return 1;
-}
-
-void test3() {
-
-    const int width = 100;
-    const int height = 100;
-
-    uint8_t img[width * height * 3];
-
-    int i = 0;
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            img[i++] = 255;
-            img[i++] = 127;
-            img[i++] = 127;
-        }
-    }
-
-    write_jpeg_file("test3.jpg", img, width, height, 3);
-
-}
-
-void saveDepths(const char* fileName, const uint32_t width, const uint32_t height, const uint16_t* data) {
-    uint8_t img[width * height * 3];
-    int j = 0;
-    int i = 0;
-    for (uint32_t y = 0; y < height; ++y) {
-        for (uint32_t x = 0; x < width; ++x) {
-            uint8_t v = (uint8_t)(data[j++] / 8);
-            img[i++] = v;
-            img[i++] = v;
-            img[i++] = v;
-        }
-    }
-    write_jpeg_file(fileName, img, width, height, 3);
-}
-
-uint8_t d2c(double v) {
-    if (v <= 0) {
-        return 0;
-    }
-    if (v > 255) {
-        return 255;
-    }
-    return (uint8_t)v;
-}
-
-void saveColor(const char* fileName, const uint32_t width, const uint32_t height, const uint8_t* data) {
-    uint8_t img[width * height * 3];
-    int j = 0;
-    int i = 0;
-    for (uint32_t y = 0; y < height; ++y) {
-        for (uint32_t x = 0; x < width; x+=2) {
-            uint8_t U = data[j++];
-            uint8_t Y0 = data[j++];
-            uint8_t V = data[j++];
-            uint8_t Y1 = data[j++];
-
-            img[i++] = d2c(1.164 * Y0             + 1.596 * V);
-            img[i++] = d2c(1.164 * Y0 - 0.392 * U - 0.813 * V);
-            img[i++] = d2c(1.164 * Y0 + 2.017 * U);
-
-            img[i++] = d2c(1.164 * Y1             + 1.596 * V);
-            img[i++] = d2c(1.164 * Y1 - 0.392 * U - 0.813 * V);
-            img[i++] = d2c(1.164 * Y1 + 2.017 * U);
-        }
-    }
-    write_jpeg_file(fileName, img, width, height, 3);
-}
-
-void test4() try {
-    // Create a pipeline with default device
-    ob::Pipeline pipe;
-
-    int i = 50;
-
-    ob::FrameSetCallback callback = [&i](std::shared_ptr<ob::FrameSet> frameSet) {
-        auto colorFrame = frameSet->colorFrame();
-        auto depthFrame = frameSet->depthFrame();
-        /*
-        if (depthFrame) {
-            if(--i == 1) {
-                saveDepths("depths1.jpg", depthFrame->width(), depthFrame->height(), (uint16_t *)depthFrame->data());
-                std::cout << "saved" << std::endl;
-            }
-        }
-        */
-        if (colorFrame) {
-            if(--i == 1) {
-                saveColor("color1.jpg", colorFrame->width(), colorFrame->height(), (uint8_t *)colorFrame->data());
-                std::cout << "saved" << std::endl;
-            }
-        }
-
-    };
-    
-    // Start the pipeline with default config, more info please refer to the `misc/config/OrbbecSDKConfig_v1.0.xml`
-    pipe.start(nullptr, callback);
+    pipe.start(config2, callback);
 
     while(i > 0) {}
 
@@ -311,9 +216,7 @@ int main(int argc, char *argv[]) {
     std::cout << "start" << std::endl;
 
 	//test1();
-    //test2();
-    //test3();
-    test4();
+    test2();
 
     std::cout << "exit" << std::endl;
 

@@ -15,7 +15,7 @@ PIGPIO_LIB=
 endif
 
 CPPFLAGS=-g -std=c++17 -Wall  -I/usr/include -I/usr/local/include -fPIC -DARCH=$(OBJ)
-LDFLAGS=-L/usr/local/lib/aarch64-linux-gnu -L/usr/local/lib/static -lstdc++ -fPIC
+LDFLAGS=-lstdc++ -fPIC
 
 $(OBJ)/%.o: $(OBJ)/%.c
 	$(CC) $(CPPFLAGS) -c -o $@ $<
@@ -23,13 +23,13 @@ $(OBJ)/%.o: $(OBJ)/%.c
 $(OBJ)/%.o: $(SRC)/%.cpp $(SRC)/%.h
 	$(CC) $(CPPFLAGS) -c -o $@ $<
 
-test1: $(OBJ)/test1.o $(OBJ)/mechanics.o $(OBJ)/structures.o $(OBJ)/module.o
-	$(CC) -o $@ $^ $(LDFLAGS) -pthread $(PIGPIO_LIB) -lrt
+test1: $(OBJ)/test1.o $(OBJ)/mechanics.o $(OBJ)/structures.o $(OBJ)/module.o $(OBJ)/camera.o
+	$(CC) -o $@ $^ $(LDFLAGS) -pthread $(PIGPIO_LIB) -lrt -lOrbbecSDK -ljpeg
 
 test2: $(OBJ)/test2.o
 	$(CC) -o $@ $^ $(LDFLAGS) -lrt -lm
 
-cameratest: $(OBJ)/cameratest.o
+cameratest: $(OBJ)/cameratest.o $(OBJ)/camera.o
 	$(CC) -o $@ $^ $(LDFLAGS) -lOrbbecSDK -ljpeg
 
 module.so: $(OBJ)/module.o  $(OBJ)/mechanics.o $(OBJ)/structures.o
@@ -52,7 +52,7 @@ runtest2:
 runtest1:
 	rsync -rci * $(REMOTE_HOST):$(REMOTE_PATH)
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; make test1"
-	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; sudo ./test1"
+	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; sudo LD_LIBRARY_PATH=/usr/local/lib ./test1"
 
 runcamera:
 	rsync -rci * $(REMOTE_HOST):$(REMOTE_PATH)
@@ -60,8 +60,12 @@ runcamera:
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; export LD_LIBRARY_PATH=/usr/local/lib ; ./cameratest"
 
 loadjpeg:
-	#rsync $(REMOTE_HOST):$(REMOTE_PATH)/depths1.jpg .
-	rsync $(REMOTE_HOST):$(REMOTE_PATH)/color1.jpg .
+	rsync $(REMOTE_HOST):$(REMOTE_PATH)/depth.jpg .
+	rsync $(REMOTE_HOST):$(REMOTE_PATH)/depth.jpg.dump .
+	rsync $(REMOTE_HOST):$(REMOTE_PATH)/color.jpg .
+	rsync $(REMOTE_HOST):$(REMOTE_PATH)/color.jpg.dump .
+	rsync $(REMOTE_HOST):$(REMOTE_PATH)/ir.jpg .
+	rsync $(REMOTE_HOST):$(REMOTE_PATH)/ir.jpg.dump .
 
 killtest1:
 	#rsh $(REMOTE_HOST) "sudo kill `ps -C test1 -o pid=`"

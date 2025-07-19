@@ -1,6 +1,7 @@
 #include "mechanics.h"
 #include "structures.h"
 #include "module.h"
+#include "camera.h"
 
 #include <iostream>
 #include <unistd.h>
@@ -431,6 +432,12 @@ void test5() {
             cout << "[0..1000]:";
             cin >> speed;
             move.setSpeed(speed / 1000.0);
+            continue;
+        }
+
+        if (cmd == "pic") {
+            //makePictures("depth.jpg", "color.jpg");
+            makePictures2("depth.jpg", "color.jpg", "ir.jpg");
             continue;
         }
     }
