@@ -8,6 +8,7 @@ from flask import request
 from flask import jsonify
 
 import struct
+import json
 
 from robotModule import robotInit
 from robotModule import robotShutdown
@@ -27,11 +28,14 @@ def start():
     data = robotInit(app.logger)
     app.logger.debug('ROBOT START OK')
     if data is not None:
-        return Response("{'status': '0', 'cmd': 'start', 'cameraWidth': %d, 'cameraHeight': %d}" %
-                         (data.CameraWidth, data.CameraHeight), content_type='text/plain; charset=utf-8')
+        r = {"status":0,
+             "cmd":"start",
+             "cameraWidth":data.CameraWidth,
+             "cameraHeight":data.CameraHeight}
     else:
-        return Response("{'status': '-1', 'cmd': 'start'}", content_type='text/plain; charset=utf-8')
-    
+        r = {"status": -1,
+             "cmd":"start"}
+    return Response(json.dumps(r), content_type='text/plain; charset=utf-8')
 
 @app.route("/shutdown")
 def shutdown():
@@ -49,7 +53,7 @@ def shutdown():
 def command(arg,cmd):
     status = robotCmd(cmd, arg)
     app.logger.debug(f"{cmd}/{arg} status={status}")
-    return Response("{'status': '%d', 'cmd': '%s', 'arg': '%s'}" % (status, cmd, arg) , content_type='text/plain; charset=utf-8')
+    return Response("{'status':%d,'cmd':'%s','arg': '%s'}" % (status, cmd, arg) , content_type='text/plain; charset=utf-8')
 
 @app.route("/getdepthdump")
 def getdepthdump():

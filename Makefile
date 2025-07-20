@@ -77,12 +77,6 @@ loadjpeg:
 	rsync $(REMOTE_HOST):$(REMOTE_PATH)/color.jpg .
 	rsync $(REMOTE_HOST):$(REMOTE_PATH)/color.jpg.dump .
 
-loadwebjpeg:
-	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/depth.jpg .
-	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/depth.jpg.dump .
-	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/color.jpg .
-	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/color.jpg.dump .
-
 loadajpeg:
 	rsync $(REMOTE_HOST):$(REMOTE_PATH)/adepth.jpg .
 	#rsync $(REMOTE_HOST):$(REMOTE_PATH)/adepth.jpg.dump .
@@ -90,6 +84,12 @@ loadajpeg:
 	#rsync $(REMOTE_HOST):$(REMOTE_PATH)/aconf.jpg.dump .
 	#rsync $(REMOTE_HOST):$(REMOTE_PATH)/araw.jpg .
 	#rsync $(REMOTE_HOST):$(REMOTE_PATH)/araw.jpg.dump .
+
+loadwebjpeg:
+	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/depth.jpg analysis/depth$(SUFFIX).jpg
+	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/depth.jpg.dump analysis/depth$(SUFFIX).dump
+	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/color.jpg analysis/color$(SUFFIX).jpg
+	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/color.jpg.dump analysis/color$(SUFFIX).dump
 
 killtest1:
 	#rsh $(REMOTE_HOST) "sudo kill `ps -C test1 -o pid=`"

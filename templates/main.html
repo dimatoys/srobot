@@ -21,7 +21,7 @@ function robotStart() {
     $.getJSON( "/start" , function(data) {
         if (data.status == 0) {
             depthwidth = data.cameraWidth
-            deothheight = data.cameraHeight
+            depthheight = data.cameraHeight
         }
         writeStatus(JSON.stringify(data))
     })
@@ -107,7 +107,7 @@ $(document).ready(function() {
             v = ""
         }
 
-        $("#tdepth").text((relativeX + ', ' + relativeY + " = " + v))
+        $("#tdepth").text((relativeX + ', ' + relativeY + " = " + v + " w=" + depthwidth))
     })
     $("#icolor").click(function(event){
         var offset = $(this).offset()
