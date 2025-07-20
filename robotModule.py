@@ -7,7 +7,11 @@ g_Logger = None
 
 class TModuleObject(Structure):
 	_fields_ = [("Skeleton", c_void_p),
-			    ("Move", c_void_p)]
+			    ("Move", c_void_p),
+				("Camera", c_void_p),
+				("CameraWidth", c_uint32),
+				("CameraHeight", c_uint32),
+				("CameraMaxRange", c_int32)]
 
 def log(m):
 	global g_Logger
@@ -30,8 +34,7 @@ def robotInit(logger):
 
 		g_ModuleData =  TModuleObject()
 		g_RobotModule.init(g_ModuleData)
-		return 0
-	return -1
+	return g_ModuleData
 	
 def robotShutdown():
 	global g_RobotModule

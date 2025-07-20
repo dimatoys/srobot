@@ -19,8 +19,8 @@ leg0:
     (2)  Top:    18  0: 1460, 90: 2130, -90: 790 (+670)
 
 leg1:
-    (3)  Bottom: 2  0: 1470, 90: 2130 (+660)
-    (4)  Middle: 3  0: 1370, 90: 2020, -90: 720  (+650)
+    (3)  Bottom: 10  0: 1470, 90: 2130 (+660)
+    (4)  Middle: 9  0: 1370, 90: 2020, -90: 720  (+650)
     (5)  Top:    4  0: 1500, 90: 840, -90: 2160 (-660)
 
 leg2:
@@ -53,8 +53,8 @@ void test1() {
     servos[1] = new TServo("middle-0", 15, 1400, 670);
     servos[2] = new TServo("top-0", 18, 1460, -670);
     // 1
-    servos[3] = new TServo("bottom-1", 2, 1470, -675);
-    servos[4] = new TServo("middle-1", 3, 1370, -650);
+    servos[3] = new TServo("bottom-1", 10, 1470, -675);
+    servos[4] = new TServo("middle-1", 9, 1370, -650);
     servos[5] = new TServo("top-1", 4, 1500, -660);
     // 2
     servos[6] = new TServo("bottom-2", 22, 1440, -670);
@@ -195,8 +195,8 @@ void test2() {
                         18, 1460, -670);
     
     legs[1] = new TLeg( "leg1",
-                        2, 1470, -675,
-                        3, 1370, -650,
+                        10, 1470, -675,
+                        9, 1370, -650,
                         4, 1500, -660);
     
     legs[2] = new TLeg( "leg2",
@@ -323,8 +323,8 @@ void test5() {
                         18, 1460, -670,
     
     // 1
-                        2, 1470, -675,
-                        3, 1370, -650,
+                        10, 1470, -675, // 2
+                        9, 1370, -650, // 3
                         4, 1500, -660,
     
     // 2
@@ -351,6 +351,8 @@ void test5() {
     move.initPosition();
     move.setSpeed(0.05);
 
+    TCamera* camera = TCamera::getCamera();
+
     while(true) {
         string cmd;
         cout << "CMD:";
@@ -360,6 +362,7 @@ void test5() {
         }
 
         if (cmd == "exit") {
+            delete camera;
             break;
         }
         
@@ -391,28 +394,6 @@ void test5() {
             cin >> direction;
             cout << "distance:";
             cin >> distance;
-            /*
-            string arg;
-            cout << "distance,direction:";
-            cin >> arg;
-
-            const char* carg = arg.c_str();
-
-            int comma = -1;
-            int end = 0;
-            while(carg[++end] != 0) {
-                if (carg[end] == ',') {
-                    comma = end;
-                }
-            }
-
-            if (comma >= 0) {
-                string dist(carg, carg + comma);
-                string dir(carg + comma + 1, end);
-                cout << "dist=" << dist << " dir=" << dir << endl;
-            }
-            */
-
             cout << "---------------------------------------------------" << endl;
             move.moveDir(distance, direction * M_PI / 180);
             continue;
@@ -436,8 +417,7 @@ void test5() {
         }
 
         if (cmd == "pic") {
-            //makePictures("depth.jpg", "color.jpg");
-            makePictures2("depth.jpg", "color.jpg", "ir.jpg");
+            camera->makePicture("depth.jpg", "color.jpg");
             continue;
         }
     }
@@ -467,8 +447,8 @@ void test7() {
                         18, 1460, -670,
     
     // 1
-                        2, 1470, -675,
-                        3, 1370, -650,
+                        10, 1470, -675,
+                        9, 1370, -650,
                         4, 1500, -660,
     
     // 2

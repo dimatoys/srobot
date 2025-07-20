@@ -5,8 +5,9 @@ from flask import Flask
 from flask import Response
 from flask import render_template
 from flask import request
+from flask import jsonify
 
-import json
+import struct
 
 from robotModule import robotInit
 from robotModule import robotShutdown
@@ -23,9 +24,14 @@ def main():
 @app.route("/start")
 def start():
     app.logger.debug('ROBOT START')
-    params = robotInit(app.logger)
+    data = robotInit(app.logger)
     app.logger.debug('ROBOT START OK')
-    return Response(json.dumps(params), content_type='text/plain; charset=utf-8')
+    if data is not None:
+        return Response("{'status': '0', 'cmd': 'start', 'cameraWidth': %d, 'cameraHeight': %d}" %
+                         (data.CameraWidth, data.CameraHeight), content_type='text/plain; charset=utf-8')
+    else:
+        return Response("{'status': '-1', 'cmd': 'start'}", content_type='text/plain; charset=utf-8')
+    
 
 @app.route("/shutdown")
 def shutdown():
@@ -42,6 +48,17 @@ def shutdown():
 @app.route("/command/<cmd>/<arg>")
 def command(arg,cmd):
     status = robotCmd(cmd, arg)
-    return Response("{'status': '%d'}" % status , content_type='text/plain; charset=utf-8')
+    app.logger.debug(f"{cmd}/{arg} status={status}")
+    return Response("{'status': '%d', 'cmd': '%s', 'arg': '%s'}" % (status, cmd, arg) , content_type='text/plain; charset=utf-8')
+
+@app.route("/getdepthdump")
+def getdepthdump():
+    with open(r"/home/pi/git/sprobot/static/depth.jpg.dump", mode='rb') as file:
+        fileContent = file.read()
+    data = []
+    for v in struct.iter_unpack("H", fileContent):
+        data.append(v[0])
+    return jsonify(data)
+        
 
 app.run(host='0.0.0.0', port=8000, debug=True)

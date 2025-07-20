@@ -3,13 +3,25 @@
 
 #include <string>
 
+struct TCamera {
+
+    uint32_t Width;
+    uint32_t Height;
+    int32_t MaxRange;
+
+    static TCamera* Camera;
+    static TCamera* getCamera();
+
+    virtual ~TCamera(){}
+
+    virtual void makePicture(std::string depthFile, std::string colorFile)=0;
+};
+
+
 int write_jpeg_file(const char *filename,
                     void *raw_image,
                     int width,
                     int height,
                     int bytes_per_pixel);
-
-void makePictures(std::string depthFile, std::string colorFile);
-void makePictures2(std::string depthFile, std::string colorFile, std::string irFile);
 
 #endif

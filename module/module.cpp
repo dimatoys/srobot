@@ -1,5 +1,6 @@
 #include "module.h"
 #include "structures.h"
+#include "camera.h"
 #include <cmath>
 #include <iostream>
 #include <unistd.h>
@@ -15,8 +16,8 @@ int init(TModuleObject* module) {
                         18, 1460, -670,
     
     // 1
-                        2, 1470, -675,
-                        3, 1370, -650,
+                        10, 1470, -675,
+                        9, 1370, -650,
                         4, 1500, -660,
     
     // 2
@@ -41,10 +42,22 @@ int init(TModuleObject* module) {
     
     module->Move = new TMove2((TSkeleton2*)module->Skeleton);
     ((TMove2*)module->Move)->initPosition();
+    auto camera = TCamera::getCamera();
+    module->Camera = camera;
+    module->CameraWidth = camera->Width;
+    module->CameraHeight = camera->Height;
+    module->CameraMaxRange = camera->MaxRange;
+
     return 0;
 }
 
 void shutdown(TModuleObject* module) {
+
+    if (module->Camera != NULL) {
+        delete (TCamera*)module->Camera;
+        module->Camera = NULL;
+    }
+
     if (module->Move != NULL) {
         delete (TMove2*)module->Move;
         module->Move = NULL;
@@ -111,6 +124,11 @@ int run_cmd(TModuleObject* module, const char* cmd, const char* arg) {
             if (command == "exit") {
                 shutdown(module);
                 return -2;
+            }
+            if (command == "pic") {
+                ((TCamera*)module->Camera)->makePicture("/home/pi/git/sprobot/static/depth.jpg",
+                                                        "/home/pi/git/sprobot/static/color.jpg");
+                return 0;
             }
 
         } else {

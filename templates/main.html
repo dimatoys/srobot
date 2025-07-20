@@ -7,20 +7,51 @@
     <script src="/static/jquery-ui-1.11.4/jquery-ui.min.js"></script>
     <script type="text/javascript">
 
+depthdump = []
+depthwidth = 0
+depthHeight = 0
+
+
+
 function writeStatus(status) {
     $("#response").html(status);
 }
 
-function robotStart(complete) {
-    $.getJSON( "/start" , complete);
+function robotStart() {
+    $.getJSON( "/start" , function(data) {
+        if (data.status == 0) {
+            depthwidth = data.cameraWidth
+            deothheight = data.cameraHeight
+        }
+        writeStatus(JSON.stringify(data))
+    })
 }
 
 function robotShutdown() {
-    $.get( "/shutdown" , writeStatus);
+    $.get( "/shutdown" , writeStatus)
 }
 
 function robotCmd(complete, cmd, arg="0") {
-    $.getJSON( "/command/" + cmd  + "/" + arg , complete);
+    $.get( "/command/" + cmd  + "/" + arg , complete)
+}
+
+function makePicture() {
+
+    robotCmd(function(status){
+        writeStatus(status)
+        setTimeout(function() {
+            $('#icolor').attr('src', function(index, src) {
+                return src.split('?')[0] + '?t=' + new Date().getTime();
+            });
+            $('#idepth').attr('src', function(index, src) {
+                return src.split('?')[0] + '?t=' + new Date().getTime();
+            })
+            $.getJSON("/getdepthdump", function(json){
+                depthdump = json
+            })
+
+        }, 500)
+    }, "pic")
 }
 
 
@@ -64,6 +95,27 @@ $(document).ready(function() {
     makeRobotCmdValueButton2(commands, "DIR", "dir", "400", "0")
     makeRobotCmdValueButton(commands, "TURN", "turn", "45")
     makeRobotCmdValueButton(commands, "SPEED", "speed", "1")
+    makeCmdButton(commands, "MAKE PICTURE", makePicture)
+
+    $("#idepth").click(function(event){
+        var offset = $(this).offset();
+        var relativeX = event.pageX - offset.left;
+        var relativeY = event.pageY - Math.floor(offset.top)
+        if (depthdump.length > 0) {
+            v = depthdump[relativeX + relativeY * depthwidth]
+        } else {
+            v = ""
+        }
+
+        $("#tdepth").text((relativeX + ', ' + relativeY + " = " + v))
+    })
+    $("#icolor").click(function(event){
+        var offset = $(this).offset()
+        var relativeX = event.pageX - offset.left
+        var relativeY = event.pageY - Math.floor(offset.top)
+
+        $("#tcolor").text((relativeX + ', ' + relativeY))
+    })
 
     robotStart(writeStatus)
  })
@@ -72,6 +124,12 @@ $(document).ready(function() {
   </head>
   <body>
     <table id="commands"></table>
-    <span id="response"></span>
+    <table>
+        <tr><td><span id="response"></span></td></tr>
+        <tr><td><img id="idepth" src="/static/depth.jpg?t=0"></td></tr>
+        <tr><td><span id="tdepth"/></td></tr>
+        <tr><td><img id="icolor" src="/static/color.jpg?t=0"></td></tr>
+        <tr><td><span id="tcolor"/></td></tr>
+    </tabletable>
   </body>
 <html>
