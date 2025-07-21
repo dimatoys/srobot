@@ -26,19 +26,20 @@ $(OBJ)/%.o: $(OBJ)/%.c
 $(OBJ)/%.o: $(SRC)/%.cpp $(SRC)/%.h
 	$(CC) $(CPPFLAGS) -c -o $@ $<
 
-test1: $(OBJ)/test1.o $(OBJ)/mechanics.o $(OBJ)/structures.o $(OBJ)/module.o $(OBJ)/camera.o
+test1: $(OBJ)/test1.o $(OBJ)/mechanics.o $(OBJ)/structures.o $(OBJ)/module.o $(OBJ)/camera.o $(OBJ)/image.o
 	$(CC) -o $@ $^ $(LDFLAGS) -pthread $(PIGPIO_LIB) -lrt $(CAMERA_SDK) -ljpeg
 
-test2: $(OBJ)/test2.o
+imagetest: $(OBJ)/image.o $(OBJ)/imagetest.o
 	$(CC) -o $@ $^ $(LDFLAGS) -lrt -lm
+	./imagetest
 
-cameratest: $(OBJ)/cameratest.o $(OBJ)/camera.o
+cameratest: $(OBJ)/cameratest.o $(OBJ)/camera.o $(OBJ)/image.o
 	$(CC) -o $@ $^ $(LDFLAGS) -lOrbbecSDK -ljpeg
 
 arducamtest: $(OBJ)/arducamtest.o
 	$(CC) -o $@ $^ $(LDFLAGS) -lArducamDepthCamera -ljpeg
 
-module.so: $(OBJ)/module.o  $(OBJ)/mechanics.o $(OBJ)/structures.o $(OBJ)/camera.o
+module.so: $(OBJ)/module.o  $(OBJ)/mechanics.o $(OBJ)/structures.o $(OBJ)/camera.o $(OBJ)/image.o
 	$(CC) -shared -o $@ $^ $(LDFLAG) $(PIGPIO_LIB) -lrt -lm -lpthread $(CAMERA_SDK) -ljpeg
 
 makerun:
@@ -106,5 +107,5 @@ shutdown:
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; sudo shutdown -h now ; exit"
 
 clean:
-	rm -rf $(OBJ) test1 test2 module.so
+	rm -rf $(OBJ) test1 module.so imagetest cameratest arducamtest
 	mkdir $(OBJ)

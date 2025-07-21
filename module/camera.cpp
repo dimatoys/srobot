@@ -3,6 +3,7 @@
 
 #include <jpeglib.h>
 
+#include "image.h"
 #include "camera.h"
 
 using namespace std;
@@ -203,43 +204,7 @@ void saveColorRGB(const char* fileName, const uint32_t width, const uint32_t hei
 void saveBW(string fileName, const uint32_t width, const uint32_t height, float* data) {
     uint8_t img[width * height * 3];
 
-    uint32_t size = width * height;
-
-    float min = 1000000000;
-    float max = -100000;
-
-    for (uint32_t i = 0; i < size; ++i) {
-        auto v = data[i];
-        if (v > 0) {
-            if (v < min ) {
-                min = v;
-            }
-            if(v > max) {
-                max = v;
-            }
-        }
-    }
-    double k = 255.0 / (max - min);
-
-
-    int j = 0;
-    int i = 0;
-    for (uint32_t y = 0; y < height; ++y) {
-        for (uint32_t x = 0; x < width; ++x) {
-            auto v = data[j++];
-            if (v <= 0) {
-                img[i++] = 255;
-                img[i++] = 128;
-                img[i++] = 128;
-
-            } else {
-                uint8_t v2 = (uint8_t)((v - min) * k);
-                img[i++] = v2;
-                img[i++] = v2;
-                img[i++] = v2;
-            }
-        }
-    }
+    BWtoRGB(width, height, data, img);
     write_jpeg_file_flip(fileName.c_str(), img, width, height, 3);
 
 }
@@ -247,13 +212,7 @@ void saveBW(string fileName, const uint32_t width, const uint32_t height, float*
 void saveDump(string dumpFile, uint32_t width, uint32_t height, const float* data) {
     auto size = width * height;
     uint16_t buffer[size];
-    uint32_t i = 0;
-    
-    for (uint32_t y = 0; y < height; ++y) {
-        for (uint32_t x = 0; x < width; ++x) {
-            buffer[x + width * (height - y - 1)] = (uint16_t)data[i++];
-        }
-    }
+    flip(width, height, data, buffer);
     saveDump(dumpFile.c_str(), size * 2, buffer);
 
 }
