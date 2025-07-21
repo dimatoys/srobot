@@ -6,22 +6,9 @@
 
 using namespace std;
 
-
-// float core[(q+1)*(q+1)]
-void gaussCore(float* core, uint16_t q) {
-    auto msize = q  +1;
-    for (uint16_t i = 0; i <= q; ++i) {
-        for (uint16_t j = i; j <= q; ++j) {
-            float v = exp(-(i*i + j*j) / (float)q);
-            core[i + j * msize] = v;
-            core[j + i * msize] = v;
-        }
-    }
-}
-
 void test1() {
     const uint8_t q = 3;
-    const auto msize = q + 1;
+    const auto msize = q * 2 + 1;
 
     float core[msize * msize];
 
@@ -36,11 +23,16 @@ void test1() {
     
 }
 
-void loadDump(string filepath, uint16_t* buffer, uint32_t size) {
+void loadDump(string filepath, float* dst, const uint32_t size) {
+    uint16_t buffer[size];
     FILE *f = fopen(filepath.c_str(), "rb+");
     if (f) {
-        fread(buffer, 1, size, f);
+        fread(buffer, 2, size, f);
         fclose(f);
+
+        for (uint32_t i = 0; i < size; ++i) {
+            dst[i] = (float)buffer[i];
+        }
     } else {
         cout << "cannot open file" << endl;
     }
@@ -49,7 +41,7 @@ void loadDump(string filepath, uint16_t* buffer, uint32_t size) {
 void saveDump(string filepath, uint16_t* buffer, uint32_t size) {
     FILE *f = fopen(filepath.c_str(), "wb");
     if (f) {
-        fwrite(buffer, 1, size, f);
+        fwrite(buffer, 2, size, f);
         fclose(f);
     } else {
         cout << "cannot write file" << endl;
@@ -62,9 +54,19 @@ void test2() {
 
     const uint32_t size = width * height;
 
-    uint16_t img[size];
+    float img[size];
 
     loadDump("analysis/depth_sobj100.dump", img, size);
+    
+    const uint8_t q = 5;
+
+    float core[(q* 2 + 1) * (q* 2 + 1)];
+    gaussCore(core, q);
+
+    uint16_t dimg[size];
+    applyGaussFilter(width, height, img, dimg, q, core);
+
+    saveDump("test1.dump", dimg, size);
 }
 
 int main(int argc, char *argv[]) {
