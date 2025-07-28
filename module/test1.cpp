@@ -417,7 +417,7 @@ void test5() {
         }
 
         if (cmd == "pic") {
-            camera->makePicture("depth.jpg", "color.jpg");
+            camera->makePicture("depth.jpg", "color.jpg", "map.jpg");
             continue;
         }
     }

@@ -14,6 +14,8 @@ else
 PIGPIO_LIB=
 endif
 
+SYNC_OPTS=--exclude analysis --exclude parts --exclude x86_64
+
 #CAMERA_SDK=-lOrbbecSDK
 CAMERA_SDK=-lArducamDepthCamera
 
@@ -43,31 +45,31 @@ module.so: $(OBJ)/module.o  $(OBJ)/mechanics.o $(OBJ)/structures.o $(OBJ)/camera
 	$(CC) -shared -o $@ $^ $(LDFLAG) $(PIGPIO_LIB) -lrt -lm -lpthread $(CAMERA_SDK) -ljpeg
 
 makerun:
-	rsync -rci * $(REMOTE_HOST):$(REMOTE_PATH)
+	rsync -rci $(SYNC_OPTS) * $(REMOTE_HOST):$(REMOTE_PATH)
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; make module.so"
 	#rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; sudo LD_LIBRARY_PATH=/usr/local/lib python web.py"
 
 run:
-	rsync -rci * $(REMOTE_HOST):$(REMOTE_PATH)
+	rsync -rci $(SYNC_OPTS) * $(REMOTE_HOST):$(REMOTE_PATH)
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; sudo LD_LIBRARY_PATH=/usr/local/lib python web.py"
 
 runtest2:
-	rsync -rci * $(REMOTE_HOST):$(REMOTE_PATH)
+	rsync -rci $(SYNC_OPTS) * $(REMOTE_HOST):$(REMOTE_PATH)
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; make test2"
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; sudo ./test2"
 
 runtest1:
-	rsync -rci * $(REMOTE_HOST):$(REMOTE_PATH)
+	rsync -rci $(SYNC_OPTS) * $(REMOTE_HOST):$(REMOTE_PATH)
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; make test1"
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; sudo LD_LIBRARY_PATH=/usr/local/lib ./test1"
 
 runcamera:
-	rsync -rci * $(REMOTE_HOST):$(REMOTE_PATH)
+	rsync -rci $(SYNC_OPTS) * $(REMOTE_HOST):$(REMOTE_PATH)
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; make cameratest"
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; export LD_LIBRARY_PATH=/usr/local/lib ; ./cameratest"
 
 runarducam:
-	rsync -rci * $(REMOTE_HOST):$(REMOTE_PATH)
+	rsync -rci $(SYNC_OPTS) $(SYNC_OPTS) * $(REMOTE_HOST):$(REMOTE_PATH)
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; make arducamtest"
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; ./arducamtest"
 
@@ -91,6 +93,8 @@ loadwebjpeg:
 	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/depth.jpg.dump analysis/depth$(SUFFIX).dump
 	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/color.jpg analysis/color$(SUFFIX).jpg
 	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/color.jpg.dump analysis/color$(SUFFIX).dump
+	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/map.jpg analysis/map$(SUFFIX).jpg
+	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/map.jpg.dump analysis/map$(SUFFIX).dump
 
 killtest1:
 	#rsh $(REMOTE_HOST) "sudo kill `ps -C test1 -o pid=`"
@@ -100,7 +104,7 @@ pstest1:
 	rsh $(REMOTE_HOST) "ps -e | grep test1"
 
 piclean:
-	rsync -rci * $(REMOTE_HOST):$(REMOTE_PATH)
+	rsync -rci $(SYNC_OPTS) * $(REMOTE_HOST):$(REMOTE_PATH)
 	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; make clean"
 
 shutdown:

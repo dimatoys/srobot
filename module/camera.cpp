@@ -110,13 +110,13 @@ int write_jpeg_file_flip(const char *filename,
 	return 1;
 }
 
-void saveDump(const char* fileName, int size, const void* data) {
+void saveDump(string fileName, int size, const void* data) {
     ofstream file (fileName);
     file.write ((const char*)data, size );
     file.close();
 }
 
-void saveDepths(const char* fileName, const uint32_t width, const uint32_t height, const uint16_t* data) {
+void saveDepths(string fileName, const uint32_t width, const uint32_t height, const uint16_t* data) {
     uint8_t img[width * height * 3];
 
     uint32_t size = width * height;
@@ -156,7 +156,7 @@ void saveDepths(const char* fileName, const uint32_t width, const uint32_t heigh
             }
         }
     }
-    write_jpeg_file(fileName, img, width, height, 3);
+    write_jpeg_file(fileName.c_str(), img, width, height, 3);
 }
 
 uint8_t d2c(double v) {
@@ -169,7 +169,7 @@ uint8_t d2c(double v) {
     return (uint8_t)(v * 127 + 127);
 }
 
-void saveColorUYVY(const char* fileName, const uint32_t width, const uint32_t height, const uint8_t* data) {
+void saveColorUYVY(string fileName, const uint32_t width, const uint32_t height, const uint8_t* data) {
     uint8_t img[width * height * 3];
     int j = 0;
     int i = 0;
@@ -194,11 +194,11 @@ void saveColorUYVY(const char* fileName, const uint32_t width, const uint32_t he
 
         }
     }
-    write_jpeg_file(fileName, img, width, height, 3);
+    write_jpeg_file(fileName.c_str(), img, width, height, 3);
 }
 
-void saveColorRGB(const char* fileName, const uint32_t width, const uint32_t height, uint8_t* data) {
-    write_jpeg_file(fileName, data, width, height, 3);
+void saveColorRGB(string fileName, const uint32_t width, const uint32_t height, uint8_t* data) {
+    write_jpeg_file(fileName.c_str(), data, width, height, 3);
 }
 
 void saveBW(string fileName, const uint32_t width, const uint32_t height, float* data) {
@@ -213,7 +213,7 @@ void saveDump(string dumpFile, uint32_t width, uint32_t height, const float* dat
     auto size = width * height;
     uint16_t buffer[size];
     flip(width, height, data, buffer);
-    saveDump(dumpFile.c_str(), size * 2, buffer);
+    saveDump(dumpFile, size * 2, buffer);
 
 }
 
@@ -321,10 +321,12 @@ struct TArducamTOFCamera : public TCamera {
 
     ArducamTOFCamera Tof;
     const int MODE = 2000;
+    const uint32_t MAX_EFFECTIVE_RANGE = 600;
     
     TArducamTOFCamera() {
         MaxRange = 0;
         start();
+        generateFy(MAX_EFFECTIVE_RANGE);
     }
 
     virtual ~TArducamTOFCamera() {
@@ -333,7 +335,7 @@ struct TArducamTOFCamera : public TCamera {
 
     void start();
     void stop();
-    void makePicture(std::string depthFile, std::string colorFile);
+    void makePicture(string depthFile, string colorFile, string mapFile);
 };
 
 void TArducamTOFCamera::start() {
@@ -368,7 +370,7 @@ void TArducamTOFCamera::stop() {
     
 }
 
-void TArducamTOFCamera::makePicture(std::string depthFile, std::string colorFile) {
+void TArducamTOFCamera::makePicture(std::string depthFile, std::string colorFile, string mapFile) {
     ArducamFrameBuffer* frame = Tof.requestFrame(200);
     if (frame == nullptr) {
         cerr << "no frame" << endl;
@@ -382,6 +384,12 @@ void TArducamTOFCamera::makePicture(std::string depthFile, std::string colorFile
         string depthDumpFile = depthFile + std::string(".dump");
         saveBW(depthFile, Width, Height, depth_ptr);
         saveDump(depthDumpFile, Width, Height, depth_ptr);
+
+        string mapDumpFile = mapFile + string(".dump");
+        uint16_t dimg[Width * MAX_EFFECTIVE_RANGE];
+        generateMap(Width, Height, depth_ptr, MAX_EFFECTIVE_RANGE, dimg);
+        saveDepths(mapFile, Width, MAX_EFFECTIVE_RANGE, dimg);
+        saveDump(mapDumpFile, Width * MAX_EFFECTIVE_RANGE, dimg);
     }
     if (confidence_ptr != nullptr) {
         string colorDumpFile = colorFile + std::string(".dump");

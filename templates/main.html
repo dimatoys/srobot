@@ -46,6 +46,9 @@ function makePicture() {
             $('#idepth').attr('src', function(index, src) {
                 return src.split('?')[0] + '?t=' + new Date().getTime();
             })
+            $('#imap').attr('src', function(index, src) {
+                return src.split('?')[0] + '?t=' + new Date().getTime();
+            })
             $.getJSON("/getdepthdump", function(json){
                 depthdump = json
             })
@@ -130,6 +133,8 @@ $(document).ready(function() {
         <tr><td><span id="tdepth"/></td></tr>
         <tr><td><img id="icolor" src="/static/color.jpg?t=0"></td></tr>
         <tr><td><span id="tcolor"/></td></tr>
+        <tr><td><img id="imap" src="/static/map.jpg?t=0"></td></tr>
+        <tr><td><span id="tmap"/></td></tr>
     </tabletable>
   </body>
 <html>

@@ -69,8 +69,29 @@ void test2() {
     saveDump("test1.dump", dimg, size);
 }
 
+void test3() {
+    const uint32_t width = 240;
+    const uint32_t height = 180;
+
+    const uint32_t size = width * height;
+
+    float img[size];
+
+    
+    //loadDump("analysis/depth_bigbox30.dump", img, size);
+    loadDump("analysis/depth_stay30.dump", img, size);
+
+    const uint32_t dheight = 600;
+    uint16_t dimg[width * dheight];
+    generateFy(dheight);
+    generateMap(width, height, img, dheight, dimg);
+
+    saveDump("test1.dump", dimg, width * dheight);
+}
+
 int main(int argc, char *argv[]) {
 	
 	//test1();
-    test2();
+    //test2();
+    test3();
 }

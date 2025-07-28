@@ -3,8 +3,10 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cstring>
 #include <cmath>
 
+using namespace std;
 
 // float core[(q*2+1)*(q*2+1)]
 void gaussCore(float* core, uint16_t q) {
@@ -59,7 +61,7 @@ void applyGaussFilter(uint32_t width, uint32_t height, float* img, uint16_t* dim
 // float data[width*height]
 // uint32_t buffer[width*height]
 
-void flip(const uint32_t width, const uint32_t height, const float* data, uint32_t* buffer) {
+void flip(const uint32_t width, const uint32_t height, const float* data, uint16_t* buffer) {
     uint32_t i = 0;
     for (uint32_t y = 0; y < height; ++y) {
         for (uint32_t x = 0; x < width; ++x) {
@@ -111,4 +113,52 @@ void BWtoRGB(const uint32_t width, const uint32_t height, const float* data, uin
             }
         }
     }
+}
+
+uint32_t fy(uint32_t d){
+    float c[4] = { 5.89494380e-06, -7.03269136e-03,  3.00940632e+00, -3.28471368e+02};
+    float v = 0;
+    for (int k = 0; k < 4; ++k) {
+        v = v * d + c[k];
+    }
+    return (uint32_t)v;
+}
+
+
+uint32_t FY[2000];
+
+void generateFy(uint32_t dheight) {
+    for (uint32_t d = 0; d < dheight; ++d) {
+        FY[d] = fy(d);
+    }
+}
+
+void generateMap(const uint32_t width, const uint32_t height, const float* img, const uint32_t dheight, uint16_t* dimg) {
+    memset(dimg, 0, width * dheight * sizeof(uint16_t));
+
+    for (uint32_t y = 0; y < height; ++y) {
+        auto x0 = width * (height - y - 1);
+        for (uint32_t x = 0; x < width; ++x) {
+            float d = img[x + x0];
+            if ((d >= 0) && (d < dheight)) {
+                uint32_t di = (uint32_t)d;
+                uint32_t yd = FY[di];
+                uint32_t h;
+                if (yd < y) {
+                    h = (y - yd) * di / 250;
+                    if (h > 1000) {
+                        h = 1000;
+                    }
+                } else {
+                    h = 1;
+                }
+                auto ptr = &dimg[x + di * width];
+                if (h > *ptr) {
+                    *ptr = (uint16_t)h;
+                }
+            }
+
+        }
+    }
+
 }

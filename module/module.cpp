@@ -127,7 +127,8 @@ int run_cmd(TModuleObject* module, const char* cmd, const char* arg) {
             }
             if (command == "pic") {
                 ((TCamera*)module->Camera)->makePicture("/home/pi/git/sprobot/static/depth.jpg",
-                                                        "/home/pi/git/sprobot/static/color.jpg");
+                                                        "/home/pi/git/sprobot/static/color.jpg",
+                                                        "/home/pi/git/sprobot/static/map.jpg");
                 return 0;
             }
 
