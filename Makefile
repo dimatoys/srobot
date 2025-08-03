@@ -28,7 +28,7 @@ $(OBJ)/%.o: $(OBJ)/%.c
 $(OBJ)/%.o: $(SRC)/%.cpp $(SRC)/%.h
 	$(CC) $(CPPFLAGS) -c -o $@ $<
 
-test1: $(OBJ)/test1.o $(OBJ)/mechanics.o $(OBJ)/structures.o $(OBJ)/module.o $(OBJ)/camera.o $(OBJ)/image.o
+test1: $(OBJ)/test1.o $(OBJ)/mechanics.o $(OBJ)/structures.o $(OBJ)/module.o $(OBJ)/camera.o $(OBJ)/image.o $(OBJ)/agent.o
 	$(CC) -o $@ $^ $(LDFLAGS) -pthread $(PIGPIO_LIB) -lrt $(CAMERA_SDK) -ljpeg
 
 imagetest: $(OBJ)/image.o $(OBJ)/imagetest.o
@@ -41,7 +41,7 @@ cameratest: $(OBJ)/cameratest.o $(OBJ)/camera.o $(OBJ)/image.o
 arducamtest: $(OBJ)/arducamtest.o
 	$(CC) -o $@ $^ $(LDFLAGS) -lArducamDepthCamera -ljpeg
 
-module.so: $(OBJ)/module.o  $(OBJ)/mechanics.o $(OBJ)/structures.o $(OBJ)/camera.o $(OBJ)/image.o
+module.so: $(OBJ)/module.o  $(OBJ)/mechanics.o $(OBJ)/structures.o $(OBJ)/camera.o $(OBJ)/image.o $(OBJ)/agent.o
 	$(CC) -shared -o $@ $^ $(LDFLAG) $(PIGPIO_LIB) -lrt -lm -lpthread $(CAMERA_SDK) -ljpeg
 
 makerun:

@@ -17,6 +17,7 @@ struct TCamera {
     virtual ~TCamera(){}
 
     virtual void makePicture(std::string depthFile, std::string colorFile)=0;
+    virtual int GetWall()=0;
 };
 
 

@@ -2,6 +2,7 @@
 #include "structures.h"
 #include "module.h"
 #include "camera.h"
+#include "agent.h"
 
 #include <iostream>
 #include <unistd.h>
@@ -417,7 +418,7 @@ void test5() {
         }
 
         if (cmd == "pic") {
-            camera->makePicture("depth.jpg", "color.jpg", "map.jpg");
+            camera->makePicture("depth.jpg", "color.jpg");
             continue;
         }
     }
@@ -528,7 +529,14 @@ void test7() {
             }
         }
     };
+}
 
+void test_agent() {
+    TCamera* camera = TCamera::getCamera();
+    TAIAgent agent(camera, NULL);
+    agent.Start();
+    usleep(1000000);
+    agent.Stop();
 }
 
 int main(int argc, char *argv[]) {
@@ -538,8 +546,9 @@ int main(int argc, char *argv[]) {
     initMechanics();
 	//test1();
     //test2();
-    test5();
+    //test5();
     //test7();
+    test_agent();
     cout << "stop" << endl;
 
     stopMechanics();

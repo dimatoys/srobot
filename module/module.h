@@ -7,6 +7,7 @@ struct TModuleObject {
     void* Skeleton;
     void* Move;
     void* Camera;
+    void* Agent;
     uint32_t CameraWidth;
     uint32_t CameraHeight;
     int32_t CameraMaxRange;

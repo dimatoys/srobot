@@ -1,5 +1,6 @@
 #include "module.h"
 #include "structures.h"
+#include "agent.h"
 #include <cmath>
 #include <iostream>
 #include <unistd.h>
@@ -39,8 +40,9 @@ int init(TModuleObject* module) {
                         20, 1390, -660,
                         21, 1420, 650);
     
-    module->Move = new TMove2((TSkeleton2*)module->Skeleton);
-    ((TMove2*)module->Move)->initPosition();
+    auto move = new TMove2((TSkeleton2*)module->Skeleton);
+    move->initPosition();
+    module->Move = move;
     auto camera = TCamera::getCamera();
     module->Camera = camera;
     module->CameraWidth = camera->Width;
@@ -48,11 +50,20 @@ int init(TModuleObject* module) {
     module->CameraMaxRange = camera->MaxRange;
     module->Parts = TCamera::PARTS;
 
+    auto agent = new TAIAgent(camera, move);
+    agent->Start();
+    module->Agent = agent;
+
     return 0;
 }
 
 void shutdown(TModuleObject* module) {
 
+    if (module->Agent != NULL) {
+        delete (TAIAgent*)module->Agent;
+        module->Agent = NULL;
+    }
+    
     if (module->Camera != NULL) {
         delete (TCamera*)module->Camera;
         module->Camera = NULL;

@@ -337,6 +337,7 @@ struct TArducamTOFCamera : public TCamera {
     void start();
     void stop();
     void makePicture(string depthFile, string colorFile);
+    int GetWall();
 };
 
 void TArducamTOFCamera::start() {
@@ -400,6 +401,26 @@ void TArducamTOFCamera::makePicture(std::string depthFile, std::string colorFile
     }
     Tof.releaseFrame(frame);
 }
+
+int TArducamTOFCamera::GetWall() {
+
+    for (int i = 0; i < 3; ++i) {
+        ArducamFrameBuffer* frame = Tof.requestFrame(200);
+        if (frame == nullptr) {
+            cerr << "no frame" << endl;
+            return -1;
+        }
+        float* depth_ptr = (float*)frame->getData(FrameType::DEPTH_FRAME);
+        if (depth_ptr != nullptr) {
+            extract_walls(Width, Height, depth_ptr, PARTS, WallDist);
+            Tof.releaseFrame(frame);
+            return 0;
+        }
+        Tof.releaseFrame(frame);
+    }
+    return -2;
+}
+
 
 TCamera* TCamera::getCamera() {
     if (Camera == NULL) {

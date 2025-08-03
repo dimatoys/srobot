@@ -9,6 +9,7 @@ class TModuleObject(Structure):
 	_fields_ = [("Skeleton", c_void_p),
 			    ("Move", c_void_p),
 				("Camera", c_void_p),
+				("Agent", c_void_p),
 				("CameraWidth", c_uint32),
 				("CameraHeight", c_uint32),
 				("CameraMaxRange", c_int32),
