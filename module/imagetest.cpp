@@ -1,6 +1,7 @@
 # include "image.h"
 
 #include <iostream>
+#include <iomanip>
 #include <unistd.h>
 #include <cmath>
 
@@ -89,9 +90,60 @@ void test3() {
     saveDump("test1.dump", dimg, width * dheight);
 }
 
+void test4() {
+    const uint32_t width = 240;
+    const uint32_t height = 180;
+
+    const uint32_t size = width * height;
+
+    float img[size];
+
+    const uint32_t parts = 10;
+    double wall_dist[parts];
+
+
+    //loadDump("analysis/v4/depth_wall40.dump", img, size);
+    //loadDump("analysis/v4/depth_wall70.dump", img, size);
+    //loadDump("analysis/v4/depth_wall70_move1.dump", img, size);
+    //loadDump("analysis/v4/depth_wall70_move2.dump", img, size);
+    //loadDump("analysis/v4/depth_wall50_move2.dump", img, size);
+    //loadDump("analysis/v4/depth_wall50_move1.dump", img, size);
+    
+    const char* files[] = { 
+                            "analysis/v4/depth_wall20_move1.dump",
+                            "analysis/v4/depth_wall20_move2.dump",
+                            "analysis/v4/depth_wall30_60.dump",
+                            "analysis/v4/depth_wall30_move1.dump",
+                            "analysis/v4/depth_wall30_move2.dump",
+                            "analysis/v4/depth_wall40.dump",
+                            "analysis/v4/depth_wall40_30.dump",
+                            "analysis/v4/depth_wall40_45.dump",
+                            "analysis/v4/depth_wall40_60.dump",
+                            "analysis/v4/depth_wall40_move1.dump",
+                            "analysis/v4/depth_wall40_move2.dump",
+                            "analysis/v4/depth_wall50_60.dump",
+                            "analysis/v4/depth_wall50_move1.dump",
+                            "analysis/v4/depth_wall50_move2.dump",
+                            "analysis/v4/depth_wall70.dump",
+                            "analysis/v4/depth_wall70_move1.dump",
+                            "analysis/v4/depth_wall70_move2.dump",
+                            "analysis/v3/depth_side30.dump"};
+
+    for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); ++i) {
+        loadDump(files[i], img, size);
+        cout << files[i] << "\t";
+        extract_walls(width, height, img, parts, wall_dist);
+        for (uint32_t i = 0; i < parts; ++i) {
+            cout << std::fixed << std::setprecision(2) << std::setw(5) << wall_dist[i] << "\t";
+        }
+        cout << endl;
+    }
+}
+
 int main(int argc, char *argv[]) {
 	
 	//test1();
     //test2();
-    test3();
+    //test3();
+    test4();
 }

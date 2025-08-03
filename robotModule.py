@@ -11,7 +11,9 @@ class TModuleObject(Structure):
 				("Camera", c_void_p),
 				("CameraWidth", c_uint32),
 				("CameraHeight", c_uint32),
-				("CameraMaxRange", c_int32)]
+				("CameraMaxRange", c_int32),
+				("WallParts", c_uint32),
+				("WallDist", c_double * 10)]
 
 def log(m):
 	global g_Logger
@@ -49,3 +51,14 @@ def robotCmd(cmd, arg=""):
 	global g_ModuleData
 
 	return g_RobotModule.run_cmd(g_ModuleData, cmd.encode("UTF-8"), arg.encode("UTF-8"))
+
+def robotPic():
+	global g_RobotModule
+	global g_ModuleData
+	status = g_RobotModule.run_cmd(g_ModuleData, "pic".encode("UTF-8"), "".encode("UTF-8"))
+	wall = []
+	for i in range(g_ModuleData.WallParts):
+		wall.append(g_ModuleData.WallDist[i])
+
+	return { 'status': status,
+		     'Walldist': wall}

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 
 #include <jpeglib.h>
 
@@ -335,7 +336,7 @@ struct TArducamTOFCamera : public TCamera {
 
     void start();
     void stop();
-    void makePicture(string depthFile, string colorFile, string mapFile);
+    void makePicture(string depthFile, string colorFile);
 };
 
 void TArducamTOFCamera::start() {
@@ -370,7 +371,8 @@ void TArducamTOFCamera::stop() {
     
 }
 
-void TArducamTOFCamera::makePicture(std::string depthFile, std::string colorFile, string mapFile) {
+void TArducamTOFCamera::makePicture(std::string depthFile, std::string colorFile) {
+    
     ArducamFrameBuffer* frame = Tof.requestFrame(200);
     if (frame == nullptr) {
         cerr << "no frame" << endl;
@@ -385,11 +387,11 @@ void TArducamTOFCamera::makePicture(std::string depthFile, std::string colorFile
         saveBW(depthFile, Width, Height, depth_ptr);
         saveDump(depthDumpFile, Width, Height, depth_ptr);
 
-        string mapDumpFile = mapFile + string(".dump");
-        uint16_t dimg[Width * MAX_EFFECTIVE_RANGE];
-        generateMap(Width, Height, depth_ptr, MAX_EFFECTIVE_RANGE, dimg);
-        saveDepths(mapFile, Width, MAX_EFFECTIVE_RANGE, dimg);
-        saveDump(mapDumpFile, Width * MAX_EFFECTIVE_RANGE, dimg);
+        extract_walls(Width, Height, depth_ptr, PARTS, WallDist);
+        //for (uint32_t i = 0; i < PARTS; ++i) {
+        //    cout << std::fixed << std::setprecision(2) << std::setw(5) << wall_dist[i] << "\t";
+        //}
+        //cout << endl;
     }
     if (confidence_ptr != nullptr) {
         string colorDumpFile = colorFile + std::string(".dump");

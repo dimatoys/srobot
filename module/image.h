@@ -12,4 +12,5 @@ void applyGaussFilter(uint32_t width, uint32_t height, float* img, uint16_t* dim
 void generateFy(uint32_t dheight);
 void generateMap(const uint32_t width, const uint32_t height, const float* img, const uint32_t dheight, uint16_t* dimg);
 
+void extract_walls(const uint32_t width, const uint32_t height, const float* img, const uint32_t parts, double* wall_dist);
 #endif

@@ -4,6 +4,8 @@
 #include <string>
 
 struct TCamera {
+    static const uint32_t PARTS = 10;
+    double WallDist[PARTS];
 
     uint32_t Width;
     uint32_t Height;
@@ -14,7 +16,7 @@ struct TCamera {
 
     virtual ~TCamera(){}
 
-    virtual void makePicture(std::string depthFile, std::string colorFile, std::string mapFile)=0;
+    virtual void makePicture(std::string depthFile, std::string colorFile)=0;
 };
 
 

@@ -1,6 +1,5 @@
 #include "module.h"
 #include "structures.h"
-#include "camera.h"
 #include <cmath>
 #include <iostream>
 #include <unistd.h>
@@ -47,6 +46,7 @@ int init(TModuleObject* module) {
     module->CameraWidth = camera->Width;
     module->CameraHeight = camera->Height;
     module->CameraMaxRange = camera->MaxRange;
+    module->Parts = TCamera::PARTS;
 
     return 0;
 }
@@ -126,9 +126,12 @@ int run_cmd(TModuleObject* module, const char* cmd, const char* arg) {
                 return -2;
             }
             if (command == "pic") {
-                ((TCamera*)module->Camera)->makePicture("/home/pi/git/sprobot/static/depth.jpg",
-                                                        "/home/pi/git/sprobot/static/color.jpg",
-                                                        "/home/pi/git/sprobot/static/map.jpg");
+                TCamera* cam = ((TCamera*)module->Camera);
+                cam->makePicture("/home/pi/git/sprobot/static/depth.jpg",
+                                 "/home/pi/git/sprobot/static/color.jpg");
+                for (uint32_t i = 0; i < cam->PARTS; ++i) {
+                    module->WallDist[i] = cam->WallDist[i];
+                }
                 return 0;
             }
 

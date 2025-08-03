@@ -162,3 +162,97 @@ void generateMap(const uint32_t width, const uint32_t height, const float* img, 
     }
 
 }
+
+void extract_walls(const uint32_t width, const uint32_t height, const float* img, const uint32_t parts, double* wall_dist) {
+
+    const uint32_t s = 14;
+    
+    const uint32_t part_size = width / parts;
+    const uint32_t s_mid = s / 2;
+    uint32_t lines[parts][s];
+    uint32_t sum[parts];
+    double avg_last[parts];
+    double avg_lastdiff[parts][s_mid];
+    double avg_sum[parts];
+    double wall_cnt[parts];
+
+    for (uint32_t i = 0; i < parts; ++i) {
+        sum[i] = 0;
+        avg_sum[i] = 0;
+        wall_dist[i] = -1;
+        wall_cnt[i] = 0;
+    }
+
+    double cnt = 0;
+    for (uint32_t y = 0; y < s_mid; ++y) {
+        auto x0 = (height - y - 1) * width;
+        cnt += part_size;
+        for (uint32_t i = 0; i < parts; ++i) {
+            uint32_t sum_line = 0;
+            for (uint32_t x = 0; x < part_size; ++x) {
+                sum_line += (uint32_t)img[x0++];
+            }
+            sum[i] += sum_line;
+            lines[i][y] = sum_line;
+            double avg = sum[i] / cnt;
+            auto avg_diff = avg - avg_last[i];
+            avg_last[i] = avg;
+            avg_sum[i] += avg_diff;
+            avg_lastdiff[i][y] = avg_diff; 
+
+            //if (i == 9) {
+            //    cout << y << ": sum=" << sum[i] << " cnt=" << cnt << " avg=" << avg << " diff=" << avg_diff << " sum_line=" << sum_line << endl;
+            //}
+        }
+    }
+
+    //cout << endl;
+
+    for (uint32_t y = s_mid; y < height; ++y) {
+        auto idx = y % s;
+        auto aidx = y % s_mid;
+        auto x0 = (height - y - 1) * width;
+        cnt = part_size * (y >= s ?  s : y + 1);
+        for (uint32_t i = 0; i < parts; ++i) {
+            uint32_t sum_line = 0;
+            for (uint32_t x = 0; x < part_size; ++x) {
+                sum_line += (uint32_t)img[x0++];
+            }
+            sum[i] += sum_line;
+            if (y >= s) {
+                sum[i] -= lines[i][idx];
+            }
+            lines[i][idx] = sum_line;
+            double avg = sum[i] / cnt;
+            auto avg_diff = avg - avg_last[i];
+            avg_last[i] = avg;
+            avg_sum[i] += avg_diff;
+            avg_sum[i] -= avg_lastdiff[i][aidx];
+            avg_lastdiff[i][aidx] = avg_diff;
+            auto avg_last_s_mid = avg_sum[i] / s_mid;
+            if (avg_diff < avg_last_s_mid * 0.5) {
+                if (wall_cnt[i] == 0) {
+                    wall_dist[i] = avg;
+                }
+                ++wall_cnt[i];
+            } else {
+                if (wall_cnt[i] < 3) {
+                    wall_cnt[i] = 0;
+                }
+            }
+
+            //if (i == 9) {
+            //    cout << (y - s_mid) << ": sum=" << sum[i] << " cnt=" << cnt << " avg=" << avg << " diff=" << avg_diff << " avg diff=" << avg_last_s_mid << (avg_diff < avg_last_s_mid * 0.5 ? " WALL" : "") << " sum_line=" << sum_line << endl;
+            //}
+            //cout << std::fixed << std::setprecision(2) << std::setw(5) << avg_diff << (avg_diff < avg_last_s_mid * 0.5 ? "W" : " ") << "\t";
+            //cout << std::fixed << std::setprecision(2) << std::setw(5) << avg << (avg_diff < avg_last_s_mid * 0.5 ? "W" : " ") << "\t";
+        }
+        //cout << endl;
+    }
+    //cout << endl;
+    for (uint32_t i = 0; i < parts; ++i) {
+        if (wall_cnt[i] < 3) {
+            wall_dist[i] = -1;
+        }
+    }
+}

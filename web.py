@@ -13,6 +13,7 @@ import json
 from robotModule import robotInit
 from robotModule import robotShutdown
 from robotModule import robotCmd
+from robotModule import robotPic
 
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -54,6 +55,14 @@ def command(arg,cmd):
     status = robotCmd(cmd, arg)
     app.logger.debug(f"{cmd}/{arg} status={status}")
     return Response("{'status':%d,'cmd':'%s','arg': '%s'}" % (status, cmd, arg) , content_type='text/plain; charset=utf-8')
+
+@app.route("/pic")
+def pic():
+    r= robotPic()
+    r['cmd'] = 'pic'
+    app.logger.debug(json.dumps(r))
+    return Response(json.dumps(r), content_type='text/plain; charset=utf-8')
+
 
 @app.route("/getdepthdump")
 def getdepthdump():
