@@ -93,6 +93,8 @@ $(document).ready(function() {
     makeRobotCmdValueButton(commands, "TURN", "turn", "45")
     makeRobotCmdValueButton(commands, "SPEED", "speed", "1")
     makeCmdButton(commands, "MAKE PICTURE", makePicture)
+    makeRobotCmdButton(commands, "STOP GOAL", "stopgoal")
+    makeRobotCmdButton(commands, "WALK UNTILL WALL", "walkuntillwall")
 
     $("#idepth").click(function(event){
         var offset = $(this).offset();

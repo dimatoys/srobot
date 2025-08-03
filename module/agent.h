@@ -9,6 +9,9 @@
 #include <pthread.h>
 
 struct TAIAgent {
+	
+	static const MIN_DISTANCE_TO_WALL = 200;
+	
     pthread_t AgentThread;
     bool Running;
     bool Started;
@@ -36,8 +39,10 @@ struct TAIAgent {
     ~TAIAgent() {
         Stop();
     }
-
+    
     void WalkToWall();
+    
+    void SetGoal(TGoal goal);
 };
 
 #endif

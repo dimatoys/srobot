@@ -151,6 +151,18 @@ int run_cmd(TModuleObject* module, const char* cmd, const char* arg) {
                 }
                 return 0;
             }
+            
+            if (command == "walkuntillwall") {
+				TAIAgent* agent = (TAIAgent*)module->Agent;
+				agent->SetGoal(TAIAgent::TGoal::WALKTOWALL);
+				return 0;
+			}
+
+            if (command == "stopgoal") {
+				TAIAgent* agent = (TAIAgent*)module->Agent;
+				agent->SetGoal(TAIAgent::TGoal::NOGOAL);
+				return 0;
+			}
 
         } else {
             std::cout << "module is not initialized" << std::endl;

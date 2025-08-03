@@ -216,10 +216,10 @@ struct TSkeleton2 : public ICompletionListener, IProcess {
 // Actually Step model
 struct IMoveModel : public ICompletionListener, IProcess {
 
-     const int STATUS_COMPLETE = 0;
-     const int STATUS_INCOMPLETE = 1;
-     const int STATUS_ERROR_UNREACHABLE = -1;
-     const int STATUS_STOPPED = -2;
+     static const int STATUS_COMPLETE = 0;
+     static const int STATUS_INCOMPLETE = 1;
+     static const int STATUS_ERROR_UNREACHABLE = -1;
+     static const int STATUS_STOPPED = -2;
      
      TSkeleton2* Skeleton;
      ICompletionListener* Complete;
