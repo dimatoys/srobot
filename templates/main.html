@@ -85,6 +85,7 @@ $(document).ready(function() {
     let commands = $("#commands")
 
     makeCmdButton(commands, "SHUTDOWN", robotShutdown)
+    makeRobotCmdButton(commands, "STOP", "stop")
     makeRobotCmdButton(commands, "NEUTRAL", "neutral")
     makeRobotCmdButton(commands, "DOWN", "down")
     makeRobotCmdValueButton(commands, "WALK", "walk", "400")

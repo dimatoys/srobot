@@ -132,6 +132,12 @@ int run_cmd(TModuleObject* module, const char* cmd, const char* arg) {
                 move->toDown();
                 return 0;
             }
+            
+            if (command == "stop") {
+				move->Stop();
+				return 0;
+			}
+            
             if (command == "exit") {
                 shutdown(module);
                 return -2;

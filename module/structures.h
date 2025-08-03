@@ -219,19 +219,22 @@ struct IMoveModel : public ICompletionListener, IProcess {
      const int STATUS_COMPLETE = 0;
      const int STATUS_INCOMPLETE = 1;
      const int STATUS_ERROR_UNREACHABLE = -1;
+     const int STATUS_STOPPED = -2;
      
      TSkeleton2* Skeleton;
      ICompletionListener* Complete;
      int Status;
      double Speed;
      double StepSpeed;
+     bool StopRequiest;
 
      IMoveModel(TSkeleton2* skeleton) :
           IProcess("move"),
           Skeleton(skeleton),
           Complete(NULL),
           Status(STATUS_COMPLETE),
-          Speed(1) {}
+          Speed(1),
+          StopRequiest(false) {}
 
      virtual void toNeutral(ICompletionListener* complete = NULL)=0;
      virtual bool setTargetsForLegs()=0;
@@ -419,6 +422,7 @@ struct TMove2 : public ICompletionListener {
      void moveForward(double distance);
      void turn(double angle);
      void moveDir(double distance, double direction);
+     void Stop();
 
      virtual ~TMove2() {}
 };

@@ -255,20 +255,26 @@ void IMoveModel::complete(IProcess* src) {
 }
 
 void IMoveModel::move() {
-    Status = STATUS_INCOMPLETE;
-    StepSpeed = Speed;
-    if (setTargetsForLegs()) {
-        if (Skeleton->countTargets()) {
-            Skeleton->setAngles(StepSpeed, this);
-            return;
-        } else {
-            cout << "Unreachable position" << endl;
-            Status = STATUS_ERROR_UNREACHABLE;
-        }
-    } else {
-        cout << "Target reached" << endl;
-        Status = STATUS_COMPLETE;
-    }
+	if (StopRequiest) {
+		cout << "movement stopped";
+		Status = STATUS_STOPPED;
+		StopRequiest = false;
+	} else {
+		Status = STATUS_INCOMPLETE;
+		StepSpeed = Speed;
+		if (setTargetsForLegs()) {
+			if (Skeleton->countTargets()) {
+				Skeleton->setAngles(StepSpeed, this);
+				return;
+			} else {
+				cout << "Unreachable position" << endl;
+				Status = STATUS_ERROR_UNREACHABLE;
+			}
+		} else {
+			cout << "Target reached" << endl;
+			Status = STATUS_COMPLETE;
+		}
+	}
 
     if (Complete != NULL) {
         auto complete = Complete;
@@ -882,5 +888,10 @@ void TMove2::moveDir(double distance, double direction) {
     } else {
         CurrentModel->toNeutral(this);
     }
+}
+
+void TMove2::Stop() {
+	cout << "Requested to Stop" << endl;
+	CurrentModel->StopRequiest = true;
 }
 
