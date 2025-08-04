@@ -134,7 +134,7 @@ void test4() {
         cout << files[i] << "\t";
         extract_walls(width, height, img, parts, wall_dist);
         for (uint32_t i = 0; i < parts; ++i) {
-            cout << std::fixed << std::setprecision(2) << std::setw(5) << wall_dist[i] << "\t";
+            cout << std::fixed << std::setprecision(2) << std::setw(5) << wall_dist[i] << ", ";
         }
         cout << endl;
     }
