@@ -93,8 +93,6 @@ loadwebjpeg:
 	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/depth.jpg.dump analysis/depth$(SUFFIX).dump
 	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/color.jpg analysis/color$(SUFFIX).jpg
 	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/color.jpg.dump analysis/color$(SUFFIX).dump
-	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/map.jpg analysis/map$(SUFFIX).jpg
-	rsync $(REMOTE_HOST):$(REMOTE_PATH)/static/map.jpg.dump analysis/map$(SUFFIX).dump
 
 killtest1:
 	#rsh $(REMOTE_HOST) "sudo kill `ps -C test1 -o pid=`"
