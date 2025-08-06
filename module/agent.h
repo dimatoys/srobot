@@ -10,7 +10,8 @@
 
 struct TAIAgent {
 	
-	static const MIN_DISTANCE_TO_WALL = 200;
+	static constexpr double MIN_DISTANCE_TO_WALL = 400;
+	static constexpr double DISTANCE_ACCURACY = 20;
 	
     pthread_t AgentThread;
     bool Running;

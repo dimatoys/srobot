@@ -36,6 +36,14 @@ void* TAIAgent::Run() {
     while(Running) {
         auto now = std::chrono::high_resolution_clock::now();
         int status =  Camera->GetWall();
+
+        //cout << "[";
+        //for (uint32_t i = 0; i < Camera->PARTS; ++i) {
+        //    cout << Camera->WallDist[i] << ", ";
+        //}
+        //cout << "]" << endl;
+
+
         cout << "Agent: " << std::fixed << std::setprecision(3) <<((now - start).count() / 1000000000.0);
         cout << " " << status << "\t";
         switch(Goal) {
@@ -59,30 +67,64 @@ void TAIAgent::SetGoal(TGoal goal) {
 }
 
 void TAIAgent::WalkToWall() {
-    double min = 10000;
-    for(uint32_t i = 0; i < Camera->PARTS; ++i) {
+    double left_min = 10000;
+    double right_min = 10000;
+    for(uint32_t i = 0; i <= Camera->PARTS / 2; ++i) {
         auto d = Camera->WallDist[i];
         if (d >= 0) {
-            if (d < min) {
-                min = d;
+            if (d < left_min) {
+                left_min = d;
             }
         }
-        //cout << std::fixed << std::setprecision(2) << std::setw(5) << d << "\t";
     }
-    if (min >= MIN_DISTANCE_TO_WALL) {
-		cout << "WTW min=" << min << " can walk";
-		if ((Move->Command != TMove2::ECommand::CMD_FORWARD) ||
-		    (Move->CurrentModel->Status != IMoveModel::STATUS_INCOMPLETE)) {
+    for(uint32_t i = Camera->PARTS / 2; i < Camera->PARTS; ++i) {
+        auto d = Camera->WallDist[i];
+        if (d >= 0) {
+            if (d < right_min) {
+                right_min = d;
+            }
+        }
+    }
 
-			Move->moveForward(-Move->MoveForwardModel->Skeleton->S);
+    auto min = right_min < left_min ? right_min : left_min;
+
+    cout << "left=" << left_min << " right_=" << right_min;
+
+    if (min >= MIN_DISTANCE_TO_WALL + DISTANCE_ACCURACY) {
+		cout << " WTW min=" << min << " can walk";
+
+		if ((Move->Command != TMove2::ECommand::CMD_DIR) ||
+		    (Move->CurrentModel->Status != IMoveModel::STATUS_INCOMPLETE) ||
+            (Move->MoveDirModel.Dir != M_PI)) {
+
+			Move->moveDir(Move->MoveDirModel.Skeleton->S, M_PI);
 		}
 	} else {
-		cout << "WTW min=" << min << " need to stop";
-		if ((Move->CurrentModel == &Move->MoveForwardModel) && 
-		    (Move->MoveForwardModel.Status == IMoveModel::STATUS_INCOMPLETE) &&
-		    (Move->MoveForwardModel.LeftDistance < 0)) {
-			
-			Move->Stop();
+        if (min < MIN_DISTANCE_TO_WALL - DISTANCE_ACCURACY) {
+		    cout << " WTW min=" << min << " need to go back ";
+		    if ((Move->Command != TMove2::ECommand::CMD_DIR) ||
+		        (Move->CurrentModel->Status != IMoveModel::STATUS_INCOMPLETE) || 
+                (Move->MoveDirModel.Dir != 0)) {
+
+			        Move->moveDir(Move->MoveDirModel.Skeleton->S, 0);
+		    }
+
+        } else {
+            auto diff = right_min - left_min;
+            if (abs(diff) > DISTANCE_ACCURACY) {
+                double angle = diff > 0 ? -M_PI / 6 : M_PI / 6;
+                cout << " diff=" << diff << " need turn=" << angle;
+
+                Move->turn(angle);
+            
+            } else {
+        		cout << " diff=" << diff << " can stop";
+	        	if ((Move->CurrentModel == &Move->MoveDirModel) && 
+		            (Move->MoveDirModel.Status == IMoveModel::STATUS_INCOMPLETE)) {
+
+			            Move->Stop();
+                }
+            }
 		}
 	}
 }

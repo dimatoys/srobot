@@ -62,7 +62,7 @@ bool TLeg::countabc(double& a, double& b, double& c) {
     b = b * 180 / M_PI + Bcorr;
     c = c * 180 / M_PI;
 
-    cout << Id << " [x=" << X << ", y=" << Y << ", h=" << H << "] -> a=" << a << " b=" << b << " c=" << c << endl;
+    //cout << Id << " [x=" << X << ", y=" << Y << ", h=" << H << "] -> a=" << a << " b=" << b << " c=" << c << endl;
     return true;
 }
 
@@ -242,7 +242,7 @@ bool TSkeleton2::countTargets() {
 }
 
 void IMoveModel::complete(IProcess* src) {
-    cout << "Complete" << endl;
+    //cout << "Complete" << endl;
 /*
     string s;
     cout << "y/n:";
