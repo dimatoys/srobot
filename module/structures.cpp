@@ -808,6 +808,168 @@ void TTurnModel::turnAngle(double angle, ICompletionListener* complete) {
     move();
 }
 
+bool TUniversalContinuesStepModel::setTargetsForLegs() {
+/*
+    enum EMode {
+          MODE_STOP,
+          MODE_DIR,
+          MODE_TURN,
+          MODE_NEUTRAL
+     };
+     
+     double State;
+     double Direction;
+     double NewDirection;
+     EMode  Mode;
+
+*/
+
+    cout << "universal: mocde=" << Mode << " newdir=" << (NewDirection * 180 / M_PI) << " state=" << (uint32_t)State << endl;
+
+    if (Mode == MODE_NEUTRAL) {
+        if (State != 0) {
+            if (stepToNeutral()) {
+                State = 0;
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    double newState = State * NewDirection * Skeleton->Tmax / 2;
+
+    if (Mode == MODE_TURN) {
+        if (State >= 0) {
+            Leg0.keep();
+            Leg1.X = Skeleton->RM * cos(-newState) - Skeleton->FW / 2;
+            Leg1.Y = Skeleton->RM * sin(-newState);
+            Leg2.keep();
+            Leg3.X = Skeleton->RE * cos(Skeleton->AN + newState) - Skeleton->FW / 2;
+            Leg3.Y = Skeleton->RE * sin(Skeleton->AN + newState) - Skeleton->FH / 2;
+            Leg4.keep();
+            Leg5.X = Skeleton->RE * cos(Skeleton->AN - newState) - Skeleton->FW / 2;
+            Leg5.Y = -(Skeleton->RE * sin(Skeleton->AN - newState) - Skeleton->FH / 2);
+
+            bool movement = false;
+            if (step(movement)) {
+                State = -1;
+            }
+                    
+            if (movement) {
+                Skeleton->Leg0.X = Skeleton->RE * cos(Skeleton->AN + newState) - Skeleton->FW / 2;
+                Skeleton->Leg0.Y = Skeleton->RE * sin(Skeleton->AN + newState) - Skeleton->FH / 2;
+                Skeleton->Leg2.X = Skeleton->RE * cos(Skeleton->AN - newState) - Skeleton->FW / 2;
+                Skeleton->Leg2.Y = -(Skeleton->RE * sin(Skeleton->AN - newState) - Skeleton->FH / 2);
+                Skeleton->Leg4.X = Skeleton->RM * cos(-newState) - Skeleton->FW / 2;
+                Skeleton->Leg4.Y = Skeleton->RM * sin(-newState);
+                if (Speed > 0.5) {
+                    StepSpeed = 0.5;
+                }
+            }
+        } else {
+            Leg0.X = Skeleton->RE * cos(Skeleton->AN + newState) - Skeleton->FW / 2;
+            Leg0.Y = Skeleton->RE * sin(Skeleton->AN + newState) - Skeleton->FH / 2;
+            Leg1.keep();
+            Leg2.X = Skeleton->RE * cos(Skeleton->AN - newState) - Skeleton->FW / 2;
+            Leg2.Y = -(Skeleton->RE * sin(Skeleton->AN - newState) - Skeleton->FH / 2);
+            Leg3.keep();
+            Leg4.X = Skeleton->RM * cos(-newState) - Skeleton->FW / 2;
+            Leg4.Y = Skeleton->RM * sin(-newState);
+            Leg5.keep();
+
+            bool movement = false;
+            if (step(movement)) {
+                State = 1;
+            }
+                    
+            if (movement) {
+                Skeleton->Leg1.X = Skeleton->RM * cos(-newState) - Skeleton->FW / 2;
+                Skeleton->Leg1.Y = Skeleton->RM * sin(-newState);
+                Skeleton->Leg3.X = Skeleton->RE * cos(Skeleton->AN + newState) - Skeleton->FW / 2;
+                Skeleton->Leg3.Y = Skeleton->RE * sin(Skeleton->AN + newState) - Skeleton->FH / 2;
+                Skeleton->Leg5.X = Skeleton->RE * cos(Skeleton->AN - newState) - Skeleton->FW / 2;
+                Skeleton->Leg5.Y = -(Skeleton->RE * sin(Skeleton->AN - newState) - Skeleton->FH / 2);
+                if (Speed > 0.5) {
+                    StepSpeed = 0.5;
+                }
+            }
+        }
+    } else {
+    
+    
+        double newStateX = Skeleton->S * sin(NewDirection) / 2;
+        double newStateY = Skeleton->S * cos(NewDirection) / 2;
+
+        if (State >= 0) {
+
+            Leg0.keep();
+            Leg1.setStep(newStateX, -newStateY);
+            Leg2.keep();
+            Leg3.setStep(-newStateX, -newStateY);
+            Leg4.keep();
+            Leg5.setStep(-newStateX, -newStateY);
+
+            bool movement = false;
+            if (step(movement)) {
+                State = -1;
+            }
+                
+            if (movement) {
+                Skeleton->Leg0.setMove(-newStateX, newStateY);
+                Skeleton->Leg2.setMove(-newStateX, newStateY);
+                Skeleton->Leg4.setMove(newStateX, newStateY);
+            }
+        } else {
+
+            Leg0.setStep(newStateX, -newStateY);
+            Leg1.keep();
+            Leg2.setStep(newStateX, -newStateY);
+            Leg3.keep();
+            Leg4.setStep(-newStateX, -newStateY);
+            Leg5.keep();
+
+            bool movement = false;
+            if (step(movement)) {
+                State = 1;
+            }
+                
+            if (movement) {
+                Skeleton->Leg1.setMove(-newStateX, newStateY);
+                Skeleton->Leg3.setMove(newStateX, newStateY);
+                Skeleton->Leg5.setMove(newStateX, newStateY);
+            }
+        }
+    }
+    return true;
+}
+
+void TUniversalContinuesStepModel::toNeutral(ICompletionListener* complete) {
+    Complete = complete;
+    Mode = MODE_NEUTRAL;
+    move();
+}
+     
+void TUniversalContinuesStepModel::moveDir(double dir) {
+    if ((Status == STATUS_INCOMPLETE) && (Mode == MODE_DIR) && (NewDirection == dir)) {
+        return;
+    }
+    
+    NewDirection = dir;
+    Mode = MODE_DIR;
+    move();
+}
+
+void TUniversalContinuesStepModel::turn(bool dir) {
+    if ((Status == STATUS_INCOMPLETE) && (Mode == MODE_TURN) && (dir == (NewDirection > 0))) {
+        return;
+    }
+    
+    NewDirection = dir ? 1 : -1;
+    Mode = MODE_TURN;
+    move();
+}
+
 void TMove2::move() {
     switch(Command) {
     case CMD_DOWN:
@@ -825,6 +987,9 @@ void TMove2::move() {
     case CMD_DIR:
         CurrentModel = &MoveDirModel;
         MoveDirModel.moveDir(Distance, Angle);
+        break;
+    case CMD_UNIVERSAL:
+        CurrentModel = &UniversalModel;
         break;
     }
 }
@@ -877,6 +1042,7 @@ void TMove2::setSpeed(double speed) {
     MoveForwardModel.Speed = speed;
     MoveDirModel.Speed = speed;
     TurnModel.Speed = speed;
+    UniversalModel.Speed = speed;
 }
 
 void TMove2::moveDir(double distance, double direction) {
@@ -892,6 +1058,18 @@ void TMove2::moveDir(double distance, double direction) {
 
 void TMove2::Stop() {
 	cout << "Requested to Stop" << endl;
-	CurrentModel->StopRequiest = true;
+	if (CurrentModel->Status == IMoveModel::STATUS_INCOMPLETE) {
+        CurrentModel->StopRequiest = true;
+    }
 }
 
+bool TMove2::toUniversal() {
+    if (CurrentModel != &UniversalModel) {
+        Command = CMD_UNIVERSAL;
+        if (CurrentModel->Status != IMoveModel::STATUS_INCOMPLETE) {
+            CurrentModel->toNeutral(this);
+        }
+        return false;
+    }
+    return true;
+}

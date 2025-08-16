@@ -421,6 +421,38 @@ void test5() {
             camera->makePicture("depth.jpg", "color.jpg");
             continue;
         }
+
+        if (cmd == "udir") {
+            if (move.toUniversal()) {
+                double direction;
+                cout << "direction:";
+                cin >> direction;
+                cout << "---------------------------------------------------" << endl;
+                move.UniversalModel.moveDir(direction * M_PI / 180);
+            } else {
+                cout << "toUniversal" << endl;
+            }
+            continue;
+        }
+
+        if (cmd == "uturn") {
+            if (move.toUniversal()) {
+                bool direction;
+                cout << "direction:";
+                cin >> direction;
+                cout << "---------------------------------------------------" << endl;
+                move.UniversalModel.turn(direction);
+            } else {
+                cout << "toUniversal" << endl;
+            }
+            continue;
+        }
+
+        if (cmd == "stop") {
+            cout << "STOP" << endl;
+            move.Stop();
+            continue;
+        }
     }
 }
 
@@ -546,9 +578,9 @@ int main(int argc, char *argv[]) {
     initMechanics();
 	//test1();
     //test2();
-    //test5();
+    test5();
     //test7();
-    test_agent();
+    //test_agent();
     cout << "stop" << endl;
 
     stopMechanics();

@@ -41,9 +41,12 @@ struct TAIAgent {
         Stop();
     }
     
-    void WalkToWall();
-    
     void SetGoal(TGoal goal);
+
+    void GetWallDistances(double* left_min, double* right_min);
+
+    void WalkToWall();
+    void NoGoal();    
 };
 
 #endif

@@ -384,13 +384,40 @@ struct TTurnModel : public IStepModel {
      void turnAngle(double angle, ICompletionListener* complete = NULL);
 };
 
+struct TUniversalContinuesStepModel : public IStepModel {
+     enum EMode {
+          MODE_DIR = 0,
+          MODE_TURN,
+          MODE_NEUTRAL
+     };
+     
+     int8_t State;
+     double Direction;
+     double NewDirection;
+     EMode  Mode;
+
+     TUniversalContinuesStepModel(TSkeleton2* skeleton) :
+          IStepModel(skeleton, 2),
+          State(0),
+          Direction(0),
+          Mode(MODE_DIR) {}
+
+     bool setTargetsForLegs();
+
+     void toNeutral(ICompletionListener* complete = NULL);
+     
+     void moveDir(double dir);
+     void turn(bool dir);
+};
+
 struct TMove2 : public ICompletionListener {
 
      enum ECommand {
           CMD_DOWN,
           CMD_FORWARD,
           CMD_TURN,
-          CMD_DIR
+          CMD_DIR,
+          CMD_UNIVERSAL
      };
      
      TMoveDownModel MoveDownModel;
@@ -402,6 +429,8 @@ struct TMove2 : public ICompletionListener {
 
      TMoveDirModel MoveDirModel;
 
+     TUniversalContinuesStepModel UniversalModel;
+
      ECommand Command;
 
      IMoveModel* CurrentModel;
@@ -410,7 +439,8 @@ struct TMove2 : public ICompletionListener {
           MoveDownModel(skeleton),
           MoveForwardModel(skeleton),
           TurnModel(skeleton),
-          MoveDirModel(skeleton)  {}
+          MoveDirModel(skeleton),
+          UniversalModel(skeleton) {}
 
      void move();
      void complete(IProcess* src);
@@ -423,6 +453,7 @@ struct TMove2 : public ICompletionListener {
      void turn(double angle);
      void moveDir(double distance, double direction);
      void Stop();
+     bool toUniversal();
 
      virtual ~TMove2() {}
 };

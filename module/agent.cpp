@@ -48,14 +48,13 @@ void* TAIAgent::Run() {
         cout << " " << status << "\t";
         switch(Goal) {
             case NOGOAL:
-                cout << "no goal";
+                NoGoal();
                 break;
             case WALKTOWALL:
                 WalkToWall();
                 break;
 
         }
-        cout << endl;
     }
 
     return NULL;
@@ -66,18 +65,10 @@ void TAIAgent::SetGoal(TGoal goal) {
 	cout << "A new goal is set:" << goal << endl;
 }
 
-void TAIAgent::WalkToWall() {
+void TAIAgent::GetWallDistances(double* left, double* right) {
     double left_min = 10000;
     double right_min = 10000;
     for(uint32_t i = 0; i <= Camera->PARTS / 2; ++i) {
-        auto d = Camera->WallDist[i];
-        if (d >= 0) {
-            if (d < left_min) {
-                left_min = d;
-            }
-        }
-    }
-    for(uint32_t i = Camera->PARTS / 2; i < Camera->PARTS; ++i) {
         auto d = Camera->WallDist[i];
         if (d >= 0) {
             if (d < right_min) {
@@ -85,45 +76,64 @@ void TAIAgent::WalkToWall() {
             }
         }
     }
+    for(uint32_t i = Camera->PARTS / 2; i < Camera->PARTS; ++i) {
+        auto d = Camera->WallDist[i];
+        if (d >= 0) {
+            if (d < left_min) {
+                left_min = d;
+            }
+        }
+    }
+    *left = left_min;
+    *right = right_min;
+}
+
+void TAIAgent::NoGoal() {
+    double left_min;
+    double right_min;
+
+    GetWallDistances(&left_min, &right_min);
+    cout << "NoGoal: left=" << left_min << " right_=" << right_min << endl;
+}
+
+void TAIAgent::WalkToWall() {
+    double left_min;
+    double right_min;
+
+    GetWallDistances(&left_min, &right_min);
+    cout << "left=" << left_min << " right_=" << right_min;
 
     auto min = right_min < left_min ? right_min : left_min;
 
-    cout << "left=" << left_min << " right_=" << right_min;
-
     if (min >= MIN_DISTANCE_TO_WALL + DISTANCE_ACCURACY) {
-		cout << " WTW min=" << min << " can walk";
+		cout << " WTW min=" << min << " can walk" << endl;
 
-		if ((Move->Command != TMove2::ECommand::CMD_DIR) ||
-		    (Move->CurrentModel->Status != IMoveModel::STATUS_INCOMPLETE) ||
-            (Move->MoveDirModel.Dir != M_PI)) {
+        if (Move->toUniversal()) {
+            Move->UniversalModel.moveDir(0);
+        }
 
-			Move->moveDir(Move->MoveDirModel.Skeleton->S, M_PI);
-		}
+
 	} else {
         if (min < MIN_DISTANCE_TO_WALL - DISTANCE_ACCURACY) {
-		    cout << " WTW min=" << min << " need to go back ";
-		    if ((Move->Command != TMove2::ECommand::CMD_DIR) ||
-		        (Move->CurrentModel->Status != IMoveModel::STATUS_INCOMPLETE) || 
-                (Move->MoveDirModel.Dir != 0)) {
+		    cout << " WTW min=" << min << " need to go back " << endl;
 
-			        Move->moveDir(Move->MoveDirModel.Skeleton->S, 0);
-		    }
+            if (Move->toUniversal()) {
+                Move->UniversalModel.moveDir(M_PI);
+            }
 
         } else {
             auto diff = right_min - left_min;
             if (abs(diff) > DISTANCE_ACCURACY) {
-                double angle = diff > 0 ? -M_PI / 6 : M_PI / 6;
-                cout << " diff=" << diff << " need turn=" << angle;
+                bool dir = diff > 0;
+                cout << " diff=" << diff << " need dir=" << dir << endl;
 
-                Move->turn(angle);
+                if (Move->toUniversal()) {
+                    Move->UniversalModel.turn(dir);
+                }
             
             } else {
-        		cout << " diff=" << diff << " can stop";
-	        	if ((Move->CurrentModel == &Move->MoveDirModel) && 
-		            (Move->MoveDirModel.Status == IMoveModel::STATUS_INCOMPLETE)) {
-
-			            Move->Stop();
-                }
+        		cout << " diff=" << diff << " stop" << endl;
+                Move->Stop();
             }
 		}
 	}
