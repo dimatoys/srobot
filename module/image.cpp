@@ -75,6 +75,10 @@ void flip(const uint32_t width, const uint32_t height, const float* data, uint16
 // uint38_t img[width * height * 3]
 
 void BWtoRGB(const uint32_t width, const uint32_t height, const float* data, uint8_t* img) {
+    BWtoRGB(width, height, data, img, false);
+}
+
+void BWtoRGB(const uint32_t width, const uint32_t height, const float* data, uint8_t* img, bool cross) {
 
     uint32_t size = width * height;
 
@@ -112,6 +116,72 @@ void BWtoRGB(const uint32_t width, const uint32_t height, const float* data, uin
                 img[i++] = v2;
             }
         }
+    }
+
+    for (uint32_t y = 0; y < height; ++y) {
+        uint32_t idx = (width * y + width / 2) * 3;
+        img[idx++] = 128;
+        img[idx++] = 255;
+        img[idx++] = 128;
+    }
+    for (uint32_t x = 0; x < width; ++x) {
+        uint32_t idx = (width * (height / 2) + x) * 3;
+        img[idx++] = 128;
+        img[idx++] = 255;
+        img[idx++] = 128;
+    }
+}
+
+void BWtoRGB(const uint32_t width, const uint32_t height, const double* data, uint8_t* img, bool cross) {
+    uint32_t size = width * height;
+
+    double min = 1000000000;
+    double max = -100000;
+
+    for (uint32_t i = 0; i < size; ++i) {
+        auto v = data[i];
+        if (v > 0) {
+            if (v < min ) {
+                min = v;
+            }
+            if(v > max) {
+                max = v;
+            }
+        }
+    }
+    double k = 255.0 / (max - min);
+
+
+    int j = 0;
+    int i = 0;
+    for (uint32_t y = 0; y < height; ++y) {
+        for (uint32_t x = 0; x < width; ++x) {
+            auto v = data[j++];
+            if (v <= 0) {
+                img[i++] = 255;
+                img[i++] = 128;
+                img[i++] = 128;
+
+            } else {
+                uint8_t v2 = (uint8_t)((v - min) * k);
+                img[i++] = v2;
+                img[i++] = v2;
+                img[i++] = v2;
+            }
+        }
+    }
+
+    for (uint32_t y = 0; y < height; ++y) {
+        uint32_t idx = (width * y + width / 2) * 3;
+        img[idx++] = 128;
+        img[idx++] = 255;
+        img[idx++] = 128;
+    }
+    for (uint32_t x = 0; x < width; ++x) {
+        uint32_t idx = (width * (height / 2) + x) * 3;
+        img[idx++] = 128;
+        img[idx++] = 255;
+        img[idx++] = 128;
     }
 }
 

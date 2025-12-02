@@ -50,10 +50,13 @@ int init(TModuleObject* module) {
     module->CameraMaxRange = camera->MaxRange;
     module->Parts = TCamera::PARTS;
 
+#if 0
     auto agent = new TAIAgent(camera, move);
     agent->Start();
     module->Agent = agent;
-
+#else
+    module->Agent = NULL;
+#endif
     return 0;
 }
 
@@ -112,7 +115,7 @@ int run_cmd(TModuleObject* module, const char* cmd, const char* arg) {
                 if (comma >= 0) {
                     string distance(arg, arg + comma);
                     string direction(arg + comma + 1, end);
-                    move->moveDir(stod(distance), stod(direction));
+                    move->moveDir(stod(distance), stod(direction) * M_PI / 180);
                     return 0;
                 } else {
                     return -1;

@@ -5,6 +5,8 @@
 
 void flip(const uint32_t width, const uint32_t height, const float* data, uint16_t* buffer);
 void BWtoRGB(const uint32_t width, const uint32_t height, const float* data, uint8_t* img);
+void BWtoRGB(const uint32_t width, const uint32_t height, const float* data, uint8_t* img, bool cross);
+void BWtoRGB(const uint32_t width, const uint32_t height, const double* data, uint8_t* img, bool cross);
 
 void gaussCore(float* core, uint16_t q);
 void applyGaussFilter(uint32_t width, uint32_t height, float* img, uint16_t* dimg, uint8_t q, float* core);

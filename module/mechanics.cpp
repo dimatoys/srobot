@@ -93,6 +93,7 @@ void TTimer::addTimed(ITimed* timed) {
 
 void TServo::setValue(int value) {
     Value = value;
+	//std::cout << "setValue: " << Pin << " <-" << value << std::endl;
     gpioServo(Pin, value);
 }
 
@@ -115,7 +116,13 @@ void TServo::tick() {
 	}
 }
 
+void TServo::stopTarget() {
+	TargetValue = Value;
+	tick();
+}
+
 void initMechanics() {
+	std::cout << "init mechanics" << std::endl;
 	if (gpioInitialise() < 0) {
 		throw std::runtime_error("Error: init error");
 	}

@@ -109,6 +109,12 @@ int TLeg::getMaxTargetDistance() {
     return Bd > Ad ? (Bd > Cd ? Bd : Cd) : (Ad > Cd ? Ad : Cd);
 }
 
+void TLeg::stop() {
+    BottomServo.stopTarget();
+    MiddleServo.stopTarget();
+    TopServo.stopTarget();
+}
+
 void TSkeleton2::complete(IProcess* src){
     if (Complete != NULL) {
         if ((Leg0.Complete == NULL) &&
@@ -119,6 +125,7 @@ void TSkeleton2::complete(IProcess* src){
             (Leg5.Complete == NULL)) {
                 auto complete = Complete;
                 Complete = NULL;
+                InProgress = false;
                 complete->complete(this);
         }
     }
@@ -210,6 +217,13 @@ void TSkeleton2::setAngles() {
     Leg5.setAngles();
 }
 
+void TSkeleton2::tick() {
+    if (InProgress) {
+        Progress += 1;
+    }
+
+}
+
 void TSkeleton2::setAngles(double speed, ICompletionListener* complete) {
     auto dmax = Leg0.getMaxTargetDistance();
     auto d  = Leg1.getMaxTargetDistance();
@@ -230,6 +244,11 @@ void TSkeleton2::setAngles(double speed, ICompletionListener* complete) {
     Leg3.setAngles(speed, dmax, this);
     Leg4.setAngles(speed, dmax, this);
     Leg5.setAngles(speed, dmax, this);
+
+    // num cycles
+    Cycles = dmax * speed / SERVO_MOVE_RATE;
+    InProgress = true;
+    Progress = 0;
 }
 
 bool TSkeleton2::countTargets() {
@@ -239,6 +258,16 @@ bool TSkeleton2::countTargets() {
            Leg3.countABC() &&
            Leg4.countABC() &&
            Leg5.countABC();
+}
+
+double TSkeleton2::stop() {
+    Leg0.stop();
+    Leg1.stop();
+    Leg2.stop();
+    Leg3.stop();
+    Leg4.stop();
+    Leg5.stop();
+    return Progress / Cycles;
 }
 
 void IMoveModel::complete(IProcess* src) {
@@ -623,7 +652,7 @@ bool TMoveDirModel::groundedGroup2(double newState) {
 
 bool TMoveDirModel::setTargetsForLegs() {
 
-    cout << "dir: distance=" << LeftDistance << " state=" << State << endl;
+    cout << "dir: distance=" << LeftDistance << " state=" << State << " dir=" << (Dir * 180 / M_PI) << endl;
 
     if (LeftDistance <= 0) {
         if (StopNeutral && (State != 0)) {
@@ -824,7 +853,7 @@ bool TUniversalContinuesStepModel::setTargetsForLegs() {
 
 */
 
-    cout << "universal: mocde=" << Mode << " newdir=" << (NewDirection * 180 / M_PI) << " state=" << (uint32_t)State << endl;
+    cout << "universal: mode=" << Mode << " newdir=" << (NewDirection * 180 / M_PI) << " state=" << (int32_t)State << endl;
 
     if (Mode == MODE_NEUTRAL) {
         if (State != 0) {
@@ -960,6 +989,9 @@ void TUniversalContinuesStepModel::moveDir(double dir) {
     move();
 }
 
+
+// true - left
+// false - right
 void TUniversalContinuesStepModel::turn(bool dir) {
     if ((Status == STATUS_INCOMPLETE) && (Mode == MODE_TURN) && (dir == (NewDirection > 0))) {
         return;

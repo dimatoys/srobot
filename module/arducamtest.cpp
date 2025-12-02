@@ -1,6 +1,9 @@
 #include "ArducamTOFCamera.hpp"
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
+
 #include <chrono>
 
 #include <jpeglib.h>
@@ -225,12 +228,105 @@ void test1() {
 
 }
 
+template<class T>
+void saveJsonArray(string file_name, size_t size, T* array) {
+    ofstream file(file_name);
+    file << "[";
+    for (size_t i = 0; i < size; ++i) {
+        file << array[i] << ", ";
+    }
+    file << "]";
+    file.close();
+}
+
+void test2() {
+    ArducamTOFCamera tof;
+    if (tof.open(Connection::CSI, 0)) {
+        std::cerr << "Failed to open camera" << std::endl;
+        return;
+    }
+
+    if (tof.start(FrameType::RAW_FRAME)) {
+    //if (tof.start(FrameType::DEPTH_FRAME)) {
+        std::cerr << "Failed to start camera" << std::endl;
+        return;
+    }
+    //  Modify the range also to modify the MAX_DISTANCE
+    int max_range = 0;
+    tof.setControl(Control::RANGE,2000);
+    tof.getControl(Control::RANGE, &max_range);
+    auto info = tof.getCameraInfo();
+    std::cout << "open camera with (" << info.width << "x" << info.height << ") max_range=" << max_range << std::endl;
+
+    for (int cnt = 1; cnt < 20; ++cnt) {
+        ArducamFrameBuffer* frame = tof.requestFrame(2000);
+        if (frame == nullptr) {
+            cout << "frame skipped" << endl;
+            continue;
+        }
+
+        // frame: (240x180)
+        Arducam::FrameFormat format_depth;
+        auto status = frame->getFormat(FrameType::DEPTH_FRAME, format_depth);
+        cout << "depth frame: (" << format_depth.width << ", " << format_depth.height << "), status=" << status << endl;
+
+        // frame: (240x180)
+        Arducam::FrameFormat format_confidence;
+        status = frame->getFormat(FrameType::CONFIDENCE_FRAME, format_confidence);
+        cout << "confidence frame: (" << format_confidence.width << ", " << format_confidence.height << "), status=" << status << endl;
+
+        // frame: (240x720)
+        Arducam::FrameFormat format_raw;
+        status = frame->getFormat(FrameType::RAW_FRAME, format_raw);
+        cout << "raw frame: (" << format_raw.width << ", " << format_raw.height << "), status=" << status << endl;
+
+        float* depth_ptr = (float*)frame->getData(FrameType::DEPTH_FRAME);
+        if (depth_ptr != NULL) {
+            std::ostringstream ss1;
+            ss1 << "depth" << cnt << ".json";
+            saveJsonArray<float>(ss1.str(), format_depth.width * format_depth.height, depth_ptr);
+        } else {
+            cerr << "no depth" << endl;
+        }
+
+        float* confidence_ptr = (float*)frame->getData(FrameType::CONFIDENCE_FRAME);
+        if (confidence_ptr != NULL) {
+            std::ostringstream ss2;
+            ss2 << "confidence" << cnt << ".json";
+            saveJsonArray<float>(ss2.str(), format_confidence.width * format_confidence.height, confidence_ptr);
+        } else {
+            cerr << "no confidence" << endl;
+        }
+
+        int16_t* raw_ptr = (int16_t*)frame->getData(FrameType::RAW_FRAME);
+        if (raw_ptr != NULL) {
+            std::ostringstream ss3;
+            ss3 << "raw" << cnt << ".json";
+            saveJsonArray<int16_t>(ss3.str(), format_raw.width * format_raw.height, raw_ptr);
+        } else {
+            cerr << "no raw" << endl;
+        }
+
+        tof.releaseFrame(frame);
+    }
+
+    if (tof.stop()) {
+        cerr << "Error stop" << endl;
+        return;
+    }
+
+    if (tof.close()) {
+        cerr << "Error close" << endl;
+    }
+}
+
 int main(int argc, char *argv[]) {
 	
     std::cout << "start" << std::endl;
 
-	test1();
+	//test1();
+    test2();
 
     std::cout << "exit" << std::endl;
-
+    return 0;
 }

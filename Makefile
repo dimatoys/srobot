@@ -39,15 +39,14 @@ cameratest: $(OBJ)/cameratest.o $(OBJ)/camera.o $(OBJ)/image.o
 	$(CC) -o $@ $^ $(LDFLAGS) -lOrbbecSDK -ljpeg
 
 arducamtest: $(OBJ)/arducamtest.o
-	$(CC) -o $@ $^ $(LDFLAGS) -lArducamDepthCamera -ljpeg
+	$(CC) -o $@ $^ $(LDFLAGS) -pthread $(CAMERA_SDK) -ljpeg
 
 module.so: $(OBJ)/module.o  $(OBJ)/mechanics.o $(OBJ)/structures.o $(OBJ)/camera.o $(OBJ)/image.o $(OBJ)/agent.o
 	$(CC) -shared -o $@ $^ $(LDFLAG) $(PIGPIO_LIB) -lrt -lm -lpthread $(CAMERA_SDK) -ljpeg
 
 makerun:
 	rsync -rci $(SYNC_OPTS) * $(REMOTE_HOST):$(REMOTE_PATH)
-	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; make module.so"
-	#rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; sudo LD_LIBRARY_PATH=/usr/local/lib python web.py"
+	rsh $(REMOTE_HOST) "cd $(REMOTE_PATH) ; make module.so && sudo LD_LIBRARY_PATH=/usr/local/lib python web.py"
 
 run:
 	rsync -rci $(SYNC_OPTS) * $(REMOTE_HOST):$(REMOTE_PATH)

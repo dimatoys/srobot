@@ -89,11 +89,12 @@ void TAIAgent::GetWallDistances(double* left, double* right) {
 }
 
 void TAIAgent::NoGoal() {
-    double left_min;
-    double right_min;
 
-    GetWallDistances(&left_min, &right_min);
-    cout << "NoGoal: left=" << left_min << " right_=" << right_min << endl;
+    cout << "NoGoal:";
+    for(uint32_t i = 0; i <= Camera->PARTS; ++i) {
+        cout << " " << std::setprecision(2) << Camera->WallDist[i];
+    }
+    cout << endl;
 }
 
 void TAIAgent::WalkToWall() {

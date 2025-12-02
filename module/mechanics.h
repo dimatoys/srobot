@@ -97,6 +97,8 @@ struct TServo : public ITimed, IProcess {
 	    //std::cout << "setTargetValue " << Id << "  " << targetValue << " from " << Value << " maxMove=" << TargetMaxMove << std::endl;
     }
 
+    void stopTarget();
+
     int getTargetDistanceToAngle(double targetAngle) {
         return getTargetDistance(getAngleValue(targetAngle));
     }

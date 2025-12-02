@@ -77,6 +77,7 @@ struct TLeg  : public ICompletionListener, IProcess, TPoint2D {
     void setAngles(double speed, ICompletionListener* complete);
     void setAngles(double speed, int maxDistance, ICompletionListener* complete);
     int getMaxTargetDistance();
+    void stop();
 
     void setMove(double dx, double dy) {
           X = XN + dx;
@@ -84,7 +85,7 @@ struct TLeg  : public ICompletionListener, IProcess, TPoint2D {
     }
 };
 
-struct TSkeleton2 : public ICompletionListener, IProcess {
+struct TSkeleton2 : public ICompletionListener, IProcess, ITimed {
      
      // Frame size, distance between edge legs vertical axies
      static constexpr double FW = 220;
@@ -135,6 +136,11 @@ struct TSkeleton2 : public ICompletionListener, IProcess {
      TLeg Leg3;
      TLeg Leg4;
      TLeg Leg5;
+
+     double Cycles;
+     bool InProgress;
+     int Progress;
+
 
      ICompletionListener* Complete;
 
@@ -200,7 +206,11 @@ struct TSkeleton2 : public ICompletionListener, IProcess {
 
           countInitParams();
           
+          TTimer::getTimer()->addTimed(this);
           TTimer::getTimer()->start(20000);
+          
+          InProgress = false;
+
      }
      virtual ~TSkeleton2() {
           TTimer::getTimer()->stop();
@@ -211,6 +221,11 @@ struct TSkeleton2 : public ICompletionListener, IProcess {
      void setAngles();
      void setAngles(double speed, ICompletionListener* complete);
      bool countTargets();
+
+     void start(long freq){}
+	void tick();
+     double stop();
+
 };
 
 // Actually Step model

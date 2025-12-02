@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <cmath>
 
 #include <jpeglib.h>
 
@@ -202,12 +203,24 @@ void saveColorRGB(string fileName, const uint32_t width, const uint32_t height, 
     write_jpeg_file(fileName.c_str(), data, width, height, 3);
 }
 
-void saveBW(string fileName, const uint32_t width, const uint32_t height, float* data) {
+void saveBW(string fileName, const uint32_t width, const uint32_t height, float* data, bool cross) {
     uint8_t img[width * height * 3];
 
-    BWtoRGB(width, height, data, img);
+    BWtoRGB(width, height, data, img, cross);
     write_jpeg_file_flip(fileName.c_str(), img, width, height, 3);
 
+}
+
+void saveBW(string fileName, const uint32_t width, const uint32_t height, double* data, bool cross) {
+    uint8_t img[width * height * 3];
+
+    BWtoRGB(width, height, data, img, cross);
+    write_jpeg_file_flip(fileName.c_str(), img, width, height, 3);
+
+}
+
+void saveBW(string fileName, const uint32_t width, const uint32_t height, float* data) {
+    saveBW(fileName, width, height, data, false);
 }
 
 void saveDump(string dumpFile, uint32_t width, uint32_t height, const float* data) {
@@ -215,7 +228,10 @@ void saveDump(string dumpFile, uint32_t width, uint32_t height, const float* dat
     uint16_t buffer[size];
     flip(width, height, data, buffer);
     saveDump(dumpFile, size * 2, buffer);
+}
 
+void saveDump(string dumpFile, uint32_t width, uint32_t height, const double* data) {
+    saveDump(dumpFile, width * height * sizeof(double), data);
 }
 
 TCamera* TCamera::Camera = NULL;
@@ -346,7 +362,8 @@ void TArducamTOFCamera::start() {
         return;
     }
 
-    if (Tof.start(FrameType::DEPTH_FRAME)) {
+    //if (Tof.start(FrameType::DEPTH_FRAME)) {
+    if (Tof.start(FrameType::RAW_FRAME)) {
         std::cerr << "Failed to start camera" << std::endl;
         return;
     }
@@ -379,6 +396,45 @@ void TArducamTOFCamera::makePicture(std::string depthFile, std::string colorFile
         cerr << "no frame" << endl;
         return;
     }
+    int16_t* raw_ptr = (int16_t*)frame->getData(FrameType::RAW_FRAME);
+    if (raw_ptr != nullptr) {
+
+        double depth[Width * Height];
+        double confidence[Width * Height];
+
+        for (uint32_t y = 0; y < Height; ++y) {
+            for (uint32_t x = 0; x < Width; ++x) {
+                auto DCS0 = raw_ptr[y * Width * 4 + x];
+                auto DCS1 = raw_ptr[y * Width * 4 + x + Width];
+                auto DCS2 = raw_ptr[y * Width * 4 + x + Width * 2];
+                auto DCS3 = raw_ptr[y * Width * 4 + x + Width * 3];
+
+                double DDC0 = DCS2 - DCS0;
+                double DDC1 = DCS3 - DCS1;
+                //result[height - y -1,x] = c * (1 + atan2(DCS3 - DCS1, DCS2 - DCS0)/ pi) / (4 * f)
+                depth[x + Width * y] = atan2(DDC1, DDC0);
+                confidence[x + Width * y] = sqrt(DDC1 * DDC1 + DDC0 * DDC0);
+            }
+        }
+
+        string depthDumpFile = depthFile + std::string(".dump");
+        saveBW(depthFile, Width, Height, depth, false);
+        saveDump(depthDumpFile, Width, Height, depth);
+        string colorDumpFile = colorFile + std::string(".dump");
+        saveBW(colorFile, Width, Height, confidence, true);
+        saveDump(colorDumpFile, Width, Height, confidence);
+    }
+    Tof.releaseFrame(frame);
+}
+
+/*
+void TArducamTOFCamera::makePicture(std::string depthFile, std::string colorFile) {
+    
+    ArducamFrameBuffer* frame = Tof.requestFrame(200);
+    if (frame == nullptr) {
+        cerr << "no frame" << endl;
+        return;
+    }
 
     float* depth_ptr = (float*)frame->getData(FrameType::DEPTH_FRAME);
     float* confidence_ptr = (float*)frame->getData(FrameType::CONFIDENCE_FRAME);
@@ -401,7 +457,7 @@ void TArducamTOFCamera::makePicture(std::string depthFile, std::string colorFile
     }
     Tof.releaseFrame(frame);
 }
-
+*/
 int TArducamTOFCamera::GetWall() {
 
     for (int i = 0; i < 3; ++i) {
