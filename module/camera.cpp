@@ -389,6 +389,24 @@ void TArducamTOFCamera::stop() {
     
 }
 
+/*
+10  -> -1.573
+20  -> -2.154
+40 -> -2.850
+60 -> 2.957
+100 -> 1.565
+140 -> 0.243
+180 -> -0.813
+200 -> -1.37
+
+f = 375e5
+c = 3e8
+k = -1000 * c / (8 * pi *f)
+k = 318.3098861837907
+b = 1500
+*/
+
+
 void TArducamTOFCamera::makePicture(std::string depthFile, std::string colorFile) {
     
     ArducamFrameBuffer* frame = Tof.requestFrame(200);
@@ -411,14 +429,17 @@ void TArducamTOFCamera::makePicture(std::string depthFile, std::string colorFile
 
                 double DDC0 = DCS2 - DCS0;
                 double DDC1 = DCS3 - DCS1;
-                //result[height - y -1,x] = c * (1 + atan2(DCS3 - DCS1, DCS2 - DCS0)/ pi) / (4 * f)
-                depth[x + Width * y] = atan2(DDC1, DDC0);
+                auto phase = atan2(DDC1, DDC0);
+                if (phase < -1) {
+                    phase = phase + 2 * M_PI;
+                }
+                depth[x + Width * y] = 1500.0 - 318.3098861837907 * phase;
                 confidence[x + Width * y] = sqrt(DDC1 * DDC1 + DDC0 * DDC0);
             }
         }
 
         string depthDumpFile = depthFile + std::string(".dump");
-        saveBW(depthFile, Width, Height, depth, false);
+        saveBW(depthFile, Width, Height, depth, true);
         saveDump(depthDumpFile, Width, Height, depth);
         string colorDumpFile = colorFile + std::string(".dump");
         saveBW(colorFile, Width, Height, confidence, true);

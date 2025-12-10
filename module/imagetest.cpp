@@ -39,6 +39,16 @@ void loadDump(string filepath, float* dst, const uint32_t size) {
     }
 }
 
+void loadDump(string filepath, double* dst, const uint32_t size) {
+    FILE *f = fopen(filepath.c_str(), "rb+");
+    if (f) {
+        fread(dst, sizeof(double), size, f);
+        fclose(f);
+    } else {
+        cout << "cannot open file" << endl;
+    }
+}
+
 void saveDump(string filepath, uint16_t* buffer, uint32_t size) {
     FILE *f = fopen(filepath.c_str(), "wb");
     if (f) {
@@ -140,10 +150,37 @@ void test4() {
     }
 }
 
+void test5() {
+
+    const uint32_t width = 240;
+    const uint32_t height = 180;
+
+    const uint32_t size = width * height;
+
+    double img[size];
+
+    loadDump("analysis/v7/depth_box500ff.dump", img, size);
+
+    uint32_t x = 120;
+    uint32_t y = 90;
+
+    const uint32_t d = 3;
+    const uint32_t r = 4;
+
+    double sf[d];
+
+    auto sdiff = count_sf(img, width, height, r, x, y, d, sf);
+
+    cout << "sdiff=[" << sf[0] << ", " << sf[1] << ", " << sf[2] << "]" << endl;
+
+    cout << "sdiff=" << sdiff << endl;
+}
+
 int main(int argc, char *argv[]) {
 	
 	//test1();
     //test2();
     //test3();
-    test4();
+    //test4();
+    test5();
 }
