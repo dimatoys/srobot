@@ -173,17 +173,19 @@ void BWtoRGB(const uint32_t width, const uint32_t height, const double* data, ui
         }
     }
 
-    for (uint32_t y = 0; y < height; ++y) {
-        uint32_t idx = (width * y + width / 2) * 3;
-        img[idx++] = 128;
-        img[idx++] = 255;
-        img[idx++] = 128;
-    }
-    for (uint32_t x = 0; x < width; ++x) {
-        uint32_t idx = (width * (height / 2) + x) * 3;
-        img[idx++] = 128;
-        img[idx++] = 255;
-        img[idx++] = 128;
+    if (cross) {
+        for (uint32_t y = 0; y < height; ++y) {
+            uint32_t idx = (width * y + width / 2) * 3;
+            img[idx++] = 128;
+            img[idx++] = 255;
+            img[idx++] = 128;
+        }
+        for (uint32_t x = 0; x < width; ++x) {
+            uint32_t idx = (width * (height / 2) + x) * 3;
+            img[idx++] = 128;
+            img[idx++] = 255;
+            img[idx++] = 128;
+        }
     }
 }
 
@@ -328,7 +330,20 @@ void extract_walls(const uint32_t width, const uint32_t height, const float* img
         }
     }
 }
-
+/*
+def count_s(r):
+    msize = (r * 2 + 1) * (r * 2 + 1)
+    m = np.zeros((msize,3))
+    k = 0
+    for i in range(-r, r+ 1):
+        for j in range(-r, r+ 1):
+            m[k,0] = i
+            m[k,1] = j
+            m[k,2] = 1
+            k+=1
+    mt = m.transpose()
+    return np.dot(np.linalg.inv(np.dot(mt, m)),mt)
+*/
 double S0[] = {1};
 
 double S1[] =     {-0.16666667, -0.16666667, -0.16666667,  0.        ,  0.        ,

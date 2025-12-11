@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iomanip>
 #include <cmath>
+#include <string.h>
 
 #include <jpeglib.h>
 
@@ -406,6 +407,18 @@ k = 318.3098861837907
 b = 1500
 */
 
+void drawBar(uint8_t* img, uint32_t width, uint32_t height, uint32_t x, uint32_t y, uint32_t size, uint8_t* color) {
+    auto shift = size / 2;
+    for (uint32_t i = 0; i <= size; ++i) {
+        for (uint32_t j = 0; j < size; ++j) {
+            memcpy(img + (width * (y + i - shift) + (x + j - shift)) * 3, color, 3);
+        }
+    }
+}
+
+uint8_t color_yellow[3] = {255, 255, 127};
+uint8_t color_green[3] = {127, 255, 127};
+uint8_t color_red[3] = {255, 127, 127};
 
 void TArducamTOFCamera::makePicture(std::string depthFile, std::string colorFile) {
     
@@ -437,9 +450,39 @@ void TArducamTOFCamera::makePicture(std::string depthFile, std::string colorFile
                 confidence[x + Width * y] = sqrt(DDC1 * DDC1 + DDC0 * DDC0);
             }
         }
+        
+        uint8_t img[Width * Height * 3];
+        BWtoRGB(Width, Height, depth, img, false);
+
+        int32_t r = 4;
+        int32_t step = 20;
+        for (int32_t y = r; y < (int32_t)Height - r; y += step) {
+            for (int32_t x = r; x < (int32_t)Width - r; x += step) {
+                double sf[3];
+                auto sdiff = count_sf(depth, Width, Height, r, x, y, 3, sf);
+                cout << "[" << x << ", " << y << "] = " << sdiff << " [" << sf[0] << ", " << sf[1] << ", " << sf[2] << "]" << endl;
+                uint8_t* color;
+                if (sdiff < 30) {
+                    color = color_yellow;
+                } else {
+                    if (sdiff < 50) {
+                        color = color_red;
+                    } else {
+                        if (sdiff < 100) {
+                            color = color_green;
+                        } else {
+                            continue;
+                        }
+                    }
+                }
+                drawBar(img, Width, Height, x, y, 5, color);
+            }
+        }
 
         string depthDumpFile = depthFile + std::string(".dump");
-        saveBW(depthFile, Width, Height, depth, true);
+        //saveBW(depthFile, Width, Height, depth, true);
+        write_jpeg_file_flip(depthFile.c_str(), img, Width, Height, 3);
+
         saveDump(depthDumpFile, Width, Height, depth);
         string colorDumpFile = colorFile + std::string(".dump");
         saveBW(colorFile, Width, Height, confidence, true);
